@@ -6,20 +6,93 @@
 <title>Safety Training AR</title>
 <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
 <style>
-  body { font-family: Arial, sans-serif; margin: 0; padding: 16px; background: #fff7ed; }
-  h1 { font-size: 20px; }
-  model-viewer { width: 100%; height: 60vh; background: #eee; border-radius: 12px; }
+  body { font-family: Arial, sans-serif; margin: 0; padding: 14px; background: #fff7ed; }
+  h1 { font-size: 20px; margin: 0 0 10px; }
+  .bar button { padding: 8px 14px; margin-right: 6px; border: 0; border-radius: 8px; background: #fdba74; font-size: 15px; }
+  model-viewer { width: 100%; height: 42vh; background: #eee; border-radius: 12px; margin-top: 10px; }
+  .card { background: #fff; border-radius: 12px; padding: 14px; margin-top: 10px; }
+  .card h2 { margin: 0 0 8px; font-size: 18px; color: #c2410c; }
+  .card p { font-size: 17px; line-height: 1.5; margin: 0 0 10px; }
+  .card button { padding: 8px 14px; border: 0; border-radius: 8px; background: #c2410c; color: #fff; font-size: 16px; }
+  .nav { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
+  .nav button { padding: 12px 22px; border: 0; border-radius: 10px; background: #16a34a; color: #fff; font-size: 18px; }
 </style>
 </head>
 <body>
-  <h1>AR Safety Training - Test</h1>
-  <model-viewer
-    src="https://modelviewer.dev/shared-assets/models/Astronaut.glb"
-    alt="test model"
-    ar
-    ar-modes="webxr scene-viewer"
-    camera-controls
-    auto-rotate>
+  <h1 id="title"></h1>
+  <div class="bar">
+    <button onclick="setLang('ta')">தமிழ்</button>
+    <button onclick="setLang('en')">English</button>
+  </div>
+
+  <model-viewer src="extinguisher.glb" alt="Fire extinguisher"
+    ar ar-modes="webxr scene-viewer" camera-controls auto-rotate>
   </model-viewer>
+
+  <div class="card">
+    <h2 id="stepTitle"></h2>
+    <p id="stepText"></p>
+    <button onclick="speak()">🔊</button>
+  </div>
+
+  <div class="nav">
+    <button onclick="move(-1)">◀</button>
+    <span id="count"></span>
+    <button onclick="move(1)">▶</button>
+  </div>
+
+<script>
+const titles = { ta: "தீ பாதுகாப்பு பயிற்சி", en: "Fire Safety Training" };
+
+const steps = [
+  { ta: { t: "முதலில் இதைச் செய்யுங்கள்", x: "தீ பிடித்தால் முதலில் மற்றவர்களை எச்சரிக்கை செய்யுங்கள். தீ சிறியதாக இருந்தால் மட்டும் அணைப்பானைப் பயன்படுத்துங்கள். வெளியேறும் வழி எப்போதும் உங்கள் பின்னால் இருக்க வேண்டும்." },
+    en: { t: "Do this first", x: "When a fire starts, alert others first. Use the extinguisher only if the fire is small. Always keep your exit behind you." } },
+  { ta: { t: "P - இழுக்கவும்", x: "அணைப்பானின் பாதுகாப்புப் பின்னை இழுக்கவும்." },
+    en: { t: "P - Pull", x: "Pull the safety pin of the extinguisher." } },
+  { ta: { t: "A - குறி வையுங்கள்", x: "நெருப்பின் அடிப்பகுதியை நோக்கிக் குறி வையுங்கள்." },
+    en: { t: "A - Aim", x: "Aim at the base of the fire." } },
+  { ta: { t: "S - அழுத்துங்கள்", x: "கைப்பிடியை அழுத்துங்கள்." },
+    en: { t: "S - Squeeze", x: "Squeeze the handle." } },
+  { ta: { t: "S - இடம் வலமாக தெளியுங்கள்", x: "அணைப்பானை இடமிருந்து வலமாக நகர்த்தித் தெளியுங்கள்." },
+    en: { t: "S - Sweep", x: "Sweep from side to side across the base of the fire." } }
+];
+
+let lang = "ta";
+let i = 0;
+
+function render() {
+  document.getElementById("title").textContent = titles[lang];
+  document.getElementById("stepTitle").textContent = steps[i][lang].t;
+  document.getElementById("stepText").textContent = steps[i][lang].x;
+  document.getElementById("count").textContent = (i + 1) + " / " + steps.length;
+}
+
+function setLang(l) { lang = l; render(); }
+
+function move(d) {
+  i = Math.max(0, Math.min(steps.length - 1, i + d));
+  speechSynthesis.cancel();
+  render();
+}
+
+function tts(text, l) {
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = l;
+  speechSynthesis.speak(u);
+}
+
+function speak() {
+  const s = steps[i];
+  if (lang === "ta") {
+    const a = new Audio("ta" + (i + 1) + ".mp3");
+    a.play().catch(() => tts(s.ta.x, "ta-IN"));
+  } else {
+    tts(s.en.x, "en-IN");
+  }
+}
+
+render();
+</script>
 </body>
 </html>
