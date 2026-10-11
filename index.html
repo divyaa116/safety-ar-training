@@ -8,31 +8,24 @@
 <style>
   :root { --yellow:#facc15; --dark:#1c1917; --orange:#ea580c; }
   * { box-sizing:border-box; }
-  html,body { margin:0; height:100%; overflow:hidden; background:#000; font-family:Arial,sans-serif; color:#fff; }
-  #cam { position:fixed; inset:0; width:100%; height:100%; object-fit:cover; }
-  #tint { position:fixed; inset:0; pointer-events:none;
-    background: radial-gradient(ellipse at 50% 45%, rgba(0,0,0,0) 25%, rgba(0,0,0,.85) 100%),
-                linear-gradient(rgba(70,45,10,.40), rgba(70,45,10,.40)); }
-
-  /* fixed mine atmosphere */
-  #atmo { position:fixed; inset:0; z-index:2; pointer-events:none; overflow:hidden; }
-  .wall-l,.wall-r { position:absolute; top:0; bottom:0; width:20%;
-    background:linear-gradient(90deg, rgba(30,20,12,.97), rgba(30,20,12,0)); }
-  .wall-l { left:0; } .wall-r { right:0; transform:scaleX(-1); }
-  #lamp { position:absolute; inset:0;
-    background:radial-gradient(circle at 50% 48%, rgba(255,230,150,.22) 0%, rgba(0,0,0,0) 45%);
+  html,body { margin:0; height:100%; overflow:hidden; background:#000; font-family:Arial,sans-serif; color:#fff; touch-action:none; }
+  #pano { position:fixed; inset:0; width:100%; height:100%; background:#0c0a09; }
+  #vig { position:fixed; inset:0; z-index:2; pointer-events:none;
+    background:radial-gradient(ellipse at 50% 45%, rgba(0,0,0,0) 40%, rgba(0,0,0,.65) 100%); }
+  #lamp { position:fixed; inset:0; z-index:2; pointer-events:none;
+    background:radial-gradient(circle at 50% 48%, rgba(255,230,150,.14) 0%, rgba(0,0,0,0) 45%);
     animation:flick 3s infinite; }
-  @keyframes flick { 0%,100%{opacity:1} 45%{opacity:.8} 50%{opacity:.95} 70%{opacity:.85} }
-  .dust { position:absolute; width:4px; height:4px; border-radius:50%; background:rgba(255,235,190,.55);
+  @keyframes flick { 0%,100%{opacity:1} 45%{opacity:.75} 50%{opacity:.95} 70%{opacity:.8} }
+  .dust { position:absolute; width:4px; height:4px; border-radius:50%; background:rgba(255,235,190,.5);
     animation:rise 7s linear infinite; }
   @keyframes rise { from{transform:translateY(0);opacity:0} 20%{opacity:.8} to{transform:translateY(-70vh);opacity:0} }
+  #dustbox { position:fixed; inset:0; z-index:2; pointer-events:none; overflow:hidden; }
 
   .stripe { position:fixed; left:0; right:0; height:14px; z-index:6;
     background:repeating-linear-gradient(45deg,var(--yellow) 0 14px,var(--dark) 14px 28px); }
   .top { top:0; } .bottom { bottom:0; }
-
   header { position:fixed; top:14px; left:0; right:0; z-index:5; padding:8px 12px;
-    background:rgba(28,25,23,.78); border-bottom:2px solid var(--yellow); }
+    background:rgba(28,25,23,.8); border-bottom:2px solid var(--yellow); }
   header h1 { margin:0; font-size:17px; color:var(--yellow); }
   header small { color:#e7e5e4; font-size:12px; }
   .lang { position:absolute; right:10px; top:8px; }
@@ -40,32 +33,29 @@
     background:rgba(0,0,0,.5); color:var(--yellow); font-weight:bold; font-size:13px; }
 
   #cross { position:fixed; left:50%; top:50%; width:30px; height:30px; margin:-15px 0 0 -15px; z-index:3;
-    border:2px solid rgba(250,204,21,.7); border-radius:50%; pointer-events:none; }
+    border:2px solid rgba(250,204,21,.6); border-radius:50%; pointer-events:none; }
   #arrow { position:fixed; left:50%; top:34%; width:70px; height:70px; margin-left:-35px; z-index:5;
     font-size:56px; text-align:center; line-height:70px; color:var(--yellow);
     text-shadow:0 0 10px #000; pointer-events:none; }
   #timer { position:fixed; top:78px; right:10px; z-index:5; padding:5px 10px; border-radius:6px;
-    background:rgba(28,25,23,.8); border-left:5px solid #ef4444; font-weight:bold; font-size:14px; }
+    background:rgba(28,25,23,.85); border-left:5px solid #ef4444; font-weight:bold; font-size:14px; }
 
-  /* world objects (created by JS) */
-  .item { position:fixed; left:0; top:0; display:none; border:0; font-family:inherit; text-align:center; }
-  .frame { z-index:3; width:260px; height:340px; margin:-170px 0 0 -130px; pointer-events:none;
-    border:16px solid #6b4423; border-bottom:0; border-radius:6px 6px 0 0;
-    box-shadow:0 0 30px #000, inset 0 0 40px rgba(0,0,0,.8);
-    background:repeating-linear-gradient(0deg, rgba(0,0,0,.0) 0 18px, rgba(0,0,0,.18) 18px 20px); }
-  .obj { z-index:4; width:84px; height:84px; margin:-42px 0 0 -42px; font-size:62px; line-height:84px;
-    background:rgba(0,0,0,.35); border-radius:50%; color:#fff; }
-  .scene { z-index:4; width:120px; height:120px; margin:-60px 0 0 -60px; font-size:84px; line-height:120px;
-    background:none; pointer-events:none; text-shadow:0 0 22px #000; }
+  .item { position:fixed; left:0; top:0; display:none; text-align:center; z-index:4; }
+  .scene { width:120px; height:120px; margin:-60px 0 0 -60px; font-size:84px; line-height:120px;
+    pointer-events:none; text-shadow:0 0 22px #000; }
   .scene.fire { animation:fireflick .35s infinite alternate; }
   @keyframes fireflick { from{transform:scale(1)} to{transform:scale(1.18)} }
-  .sign { z-index:4; padding:8px 12px; border-radius:6px; font-size:20px; font-weight:bold; line-height:1.25;
+  .sign { padding:8px 12px; border-radius:6px; font-size:20px; font-weight:bold; line-height:1.25;
     margin:-22px 0 0 -60px; pointer-events:none; }
   .sign.exit { background:#15803d; border:3px solid #fff; }
   .sign.warn { background:#facc15; color:#1c1917; border:3px solid #1c1917; }
+  .ext { width:64px; height:64px; margin:-32px 0 0 -32px; font-size:34px; line-height:60px; border-radius:8px;
+    background:rgba(250,204,21,.22); border:2px solid rgba(250,204,21,.55); }
+  .ext.hint { animation:pulse 1s infinite; }
+  @keyframes pulse { 50% { box-shadow:0 0 22px 8px #facc15; } }
 
   .panel { position:fixed; z-index:5; left:0; right:0; bottom:14px; padding:12px 14px 10px;
-    background:rgba(28,25,23,.9); border-top:3px solid var(--yellow); }
+    background:rgba(28,25,23,.92); border-top:3px solid var(--yellow); }
   .panel h2 { margin:0 0 6px; font-size:18px; color:var(--yellow); }
   .panel p { margin:0 0 8px; font-size:16px; line-height:1.45; }
   .row { display:flex; align-items:center; justify-content:space-between; gap:8px; }
@@ -79,23 +69,18 @@
   #arbtn { margin-top:8px; width:100%; padding:10px; border:0; border-radius:6px; background:#16a34a; color:#fff; font-size:16px; font-weight:bold; }
   #hiddenAR { position:fixed; bottom:0; left:0; width:2px; height:2px; opacity:.01; z-index:1; }
 
-  #start { position:fixed; inset:0; z-index:10; background:rgba(0,0,0,.9);
+  #start { position:fixed; inset:0; z-index:10; background:rgba(0,0,0,.92);
     display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:22px; }
   #start h2 { color:var(--yellow); }
   #start button { margin-top:12px; padding:14px 26px; border:0; border-radius:8px;
     background:var(--yellow); color:var(--dark); font-size:20px; font-weight:bold; }
   #toast { position:fixed; left:12px; right:12px; top:46%; z-index:9; padding:12px; border-radius:8px; text-align:center;
-    font-size:17px; font-weight:bold; background:rgba(127,29,29,.95); display:none; }
+    font-size:17px; font-weight:bold; display:none; }
 </style>
 </head>
 <body>
-  <video id="cam" autoplay playsinline muted></video>
-  <div id="tint"></div>
-  <div id="atmo">
-    <div class="wall-l"></div><div class="wall-r"></div>
-    <div id="lamp"></div>
-    <div id="dustbox"></div>
-  </div>
+  <canvas id="pano"></canvas>
+  <div id="vig"></div><div id="lamp"></div><div id="dustbox"></div>
   <div class="stripe top"></div>
 
   <header>
@@ -145,16 +130,16 @@
 const T = {
   ta: { title:"சுரங்கப் பாதுகாப்பு பயிற்சி", sub:"தீ மற்றும் வெடிப்பு பாதுகாப்பு",
         startTitle:"சுரங்கப் பயிற்சிக்குத் தயார்",
-        startText:"கேமராவையும் இயக்கத்தையும் அனுமதிக்கவும். பிறகு போனை சுற்றி திருப்பவும்.",
+        startText:"இயக்க அனுமதியை ஏற்கவும். பிறகு போனை சுற்றி திருப்பி சுரங்கத்தைப் பாருங்கள்.",
         sTitle:"🔥 அவசரம்! மின் பலகையில் தீ!",
-        sText:"சுற்றிலும் போனைத் திருப்பி சரியான தீ அணைப்பானைக் கண்டுபிடியுங்கள். அம்புக்குறி வழி காட்டும். கண்டதும் அதைத் தொடுங்கள்.",
+        sText:"சுரங்கச் சுவரில் பொருத்தப்பட்டுள்ள சரியான தீ அணைப்பானைக் கண்டுபிடியுங்கள். அம்புக்குறி வழி காட்டும். கண்டதும் அதைத் தொடுங்கள்.",
         found:"சரி! அணைப்பான் கிடைத்தது. நேரம்: ", wrong:"தவறு! மின் தீக்கு தண்ணீர் பயன்படுத்தக் கூடாது!",
         arBtn:"📷 உங்கள் இடத்தில் அணைப்பானை வைத்துப் பாருங்கள்", secs:" வி" },
   en: { title:"Mine Safety Training", sub:"Fire & Explosion Response",
         startTitle:"Ready for mine training",
-        startText:"Allow camera and motion access. Then turn your phone around.",
+        startText:"Allow motion access. Then turn your phone around to look around the mine.",
         sTitle:"🔥 Emergency! Fire at the electrical panel!",
-        sText:"Turn your phone around to find the correct fire extinguisher. The arrow shows the way. Tap it when you see it.",
+        sText:"Find the correct fire extinguisher mounted on the mine wall. The arrow shows the way. Tap it when you see it.",
         found:"Correct! Extinguisher found. Time: ", wrong:"Wrong! Never use water on an electrical fire!",
         arBtn:"📷 Place the extinguisher in your space (AR)", secs:" s" }
 };
@@ -199,8 +184,8 @@ function speakSearch(){
   else tts(L.sTitle+" "+L.sText,"en-IN");
 }
 
-/* ---------- sensors + 3D math ---------- */
-let A=0,B=0,G=0,haveSensor=false,az0=null;
+/* ---------- sensors + math ---------- */
+let A=0,B=0,G=0,haveSensor=false,realSensor=false,az0=null;
 const rad=d=>d*Math.PI/180;
 function mul(a,b){ const r=[[0,0,0],[0,0,0],[0,0,0]];
   for(let i=0;i<3;i++)for(let j=0;j<3;j++)for(let k=0;k<3;k++)r[i][j]+=a[i][k]*b[k][j]; return r; }
@@ -212,30 +197,80 @@ function forwardAz(R){ return Math.atan2(-R[0][2],-R[1][2])*180/Math.PI; }
 
 window.addEventListener("deviceorientation",e=>{
   if(e.alpha===null||e.alpha===undefined) return;
-  A=rad(e.alpha); B=rad(e.beta); G=rad(e.gamma); haveSensor=true;
+  A=rad(e.alpha); B=rad(e.beta); G=rad(e.gamma); haveSensor=true; realSensor=true;
 });
 
-/* ---------- the mine world (angles are relative to the way you face at START) ---------- */
-const items=[];
-// timber tunnel frames in a ring around you
-for(let a=0;a<360;a+=40){ items.push({cls:"frame", html:"", off:a, el:0, m:240}); }
-// emergency + signs
-items.push({cls:"scene fire", html:"🔥", off:0, el:-4, m:80});
-items.push({cls:"scene", html:"⚡", off:0, el:8, m:80});
-items.push({cls:"sign exit", html:"EXIT ➜<br>வெளியே", off:95, el:4, m:90});
-items.push({cls:"sign warn", html:"⚠ GAS<br>எரிவாயு", off:-150, el:4, m:90});
-// tappable objects
-items.push({cls:"obj", html:"🧯", off:140, el:-8, m:60, kind:"ext"});
-items.push({cls:"obj", html:"🪣", off:-80, el:-12, m:60, kind:"bucket"});
+/* drag-to-look fallback (for laptop testing, or if the phone has no sensor) */
+let dragging=false,lastX=0;
+addEventListener("pointerdown",e=>{ dragging=true; lastX=e.clientX; });
+addEventListener("pointerup",()=>dragging=false);
+addEventListener("pointermove",e=>{
+  if(!dragging||realSensor) return;
+  A+=rad((e.clientX-lastX)*0.3); lastX=e.clientX;
+});
 
+/* ---------- panorama from your photo ---------- */
+const pano=$("pano"), ctx=pano.getContext("2d");
+let cw=0,ch=0,DX,DY,imgData,tex,TW=0,TH=0,texReady=false;
+const VSPAN=70; // degrees of height covered by the photo
+
+const img=new Image();
+img.onload=()=>{
+  const c=document.createElement("canvas"); c.width=img.width; c.height=img.height;
+  const cx=c.getContext("2d"); cx.drawImage(img,0,0);
+  tex=cx.getImageData(0,0,img.width,img.height).data; TW=img.width; TH=img.height; texReady=true;
+};
+img.onerror=()=>alert("mine.jpg not found. Upload your photo to the repo and name it mine.jpg");
+img.src="mine.jpg";
+
+function setupPano(){
+  const w=innerWidth,h=innerHeight;
+  cw=140; ch=Math.round(cw*h/w);
+  pano.width=cw; pano.height=ch;
+  const f=(w/2)/Math.tan(rad(50)/2);
+  DX=new Float32Array(cw*ch); DY=new Float32Array(cw*ch);
+  for(let py=0;py<ch;py++)for(let px=0;px<cw;px++){
+    const sx=(px+.5)/cw*w, sy=(py+.5)/ch*h, p=py*cw+px;
+    DX[p]=(sx-w/2)/f; DY[p]=-(sy-h/2)/f;
+  }
+  imgData=ctx.createImageData(cw,ch);
+}
+addEventListener("resize",setupPano);
+
+function drawPano(R){
+  if(!texReady||!imgData) return;
+  const data=imgData.data, n=cw*ch, D=180/Math.PI;
+  const r00=R[0][0],r01=R[0][1],r02=R[0][2],r10=R[1][0],r11=R[1][1],r12=R[1][2],r20=R[2][0],r21=R[2][1],r22=R[2][2];
+  for(let p=0;p<n;p++){
+    const dx=DX[p],dy=DY[p];
+    const wx=r00*dx+r01*dy-r02, wy=r10*dx+r11*dy-r12, wz=r20*dx+r21*dy-r22;
+    const az=Math.atan2(wx,wy)*D, el=Math.atan2(wz,Math.sqrt(wx*wx+wy*wy))*D;
+    const t=(((az-az0+45)%360)+360)%360/90;
+    const ti=Math.floor(t); let fr=t-ti; if(ti&1) fr=1-fr;
+    const tx=Math.min(TW-1,(fr*TW)|0);
+    let vy=0.5-el/VSPAN, shade=1;
+    if(vy<0){vy=0;shade=.55;} else if(vy>1){vy=1;shade=.45;}
+    const ty=(vy*(TH-1))|0, s=(ty*TW+tx)*4, o=p*4;
+    data[o]=tex[s]*shade; data[o+1]=tex[s+1]*shade; data[o+2]=tex[s+2]*shade; data[o+3]=255;
+  }
+  ctx.putImageData(imgData,0,0);
+}
+
+/* ---------- fixed objects in the mine ---------- */
+const items=[
+  {cls:"scene fire", html:"🔥", off:0,    el:-4,  m:80},
+  {cls:"scene",      html:"⚡", off:0,    el:6,   m:80},
+  {cls:"sign exit",  html:"EXIT ➜<br>வெளியே", off:95, el:4, m:90},
+  {cls:"sign warn",  html:"⚠ GAS<br>எரிவாயு", off:-150, el:4, m:90},
+  {cls:"ext",        html:"🧯", off:140, el:-6,  m:60, kind:"ext"},
+  {cls:"ext",        html:"🪣", off:-80, el:-12, m:60, kind:"bucket"}
+];
 items.forEach(it=>{
   const e=document.createElement("div");
   e.className="item "+it.cls; e.innerHTML=it.html;
   if(it.kind) e.onclick=()=>tapItem(it);
   document.body.appendChild(e); it.el_=e;
 });
-
-// floating dust
 for(let k=0;k<16;k++){
   const d=document.createElement("span"); d.className="dust";
   d.style.left=(Math.random()*100)+"%"; d.style.top=(40+Math.random()*60)+"%";
@@ -247,10 +282,10 @@ function loop(){
   if((phase!=="search"&&phase!=="lesson")||!haveSensor) return;
   const R=rotation(A,B,G);
   if(az0===null) az0=forwardAz(R);
-  const w=innerWidth,h=innerHeight;
-  const f=(w/2)/Math.tan(rad(50)/2);
-  let extVisible=false, extVec=null;
+  drawPano(R);
 
+  const w=innerWidth,h=innerHeight, f=(w/2)/Math.tan(rad(50)/2);
+  let extVisible=false, extVec=null;
   items.forEach(it=>{
     if(it.gone){ it.el_.style.display="none"; return; }
     const az=rad(az0+it.off), el=rad(it.el);
@@ -261,8 +296,7 @@ function loop(){
     if(depth>0.05){
       const sx=w/2+f*d[0]/depth, sy=h/2-f*d[1]/depth;
       if(sx>-it.m&&sx<w+it.m&&sy>-it.m&&sy<h+it.m){
-        it.el_.style.display="block";
-        it.el_.style.left=sx+"px"; it.el_.style.top=sy+"px";
+        it.el_.style.display="block"; it.el_.style.left=sx+"px"; it.el_.style.top=sy+"px";
         if(it.kind==="ext") extVisible=true;
         return;
       }
@@ -280,7 +314,7 @@ function loop(){
   }
 }
 
-/* ---------- game events ---------- */
+/* ---------- game ---------- */
 function toast(msg,color){ const t=$("toast"); t.textContent=msg; t.style.background=color; t.style.display="block"; setTimeout(()=>t.style.display="none",2200); }
 
 function tapItem(it){
@@ -293,9 +327,7 @@ function tapItem(it){
     $("search").style.display="none"; $("lesson").style.display="block";
     toast(T[lang].found+foundTime+T[lang].secs,"rgba(21,128,61,.95)");
     try{ localStorage.setItem("searchTime",foundTime); }catch(e){}
-  } else {
-    toast(T[lang].wrong,"rgba(127,29,29,.95)");
-  }
+  } else toast(T[lang].wrong,"rgba(127,29,29,.95)");
 }
 
 function openAR(){ const mv=$("hiddenAR"); if(mv.canActivateAR) mv.activateAR(); else alert("AR not supported on this device"); }
@@ -306,12 +338,11 @@ async function startAll(){
       await DeviceOrientationEvent.requestPermission();
     }
   }catch(e){}
-  try{
-    const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"},audio:false});
-    $("cam").srcObject=s;
-  }catch(e){ alert("Camera not available: "+e.message); }
   $("start").style.display="none";
+  setupPano();
   az0=null; t0=Date.now(); phase="search";
+  setTimeout(()=>{ if(!realSensor){ B=rad(90); G=0; haveSensor=true; } },1200); // drag fallback
+  setTimeout(()=>{ items.forEach(x=>{ if(x.kind==="ext") x.el_.classList.add("hint"); }); },25000);
   speakSearch();
 }
 
