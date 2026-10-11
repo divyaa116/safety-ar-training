@@ -545,8 +545,8 @@ async function makeCert(){
   hide("result"); show("cert");
   const id="MSA-"+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,5).toUpperCase();
   const date=new Date().toISOString().slice(0,10);
-  const data={id:id,n:workerName,w:workerId,m:MODULE_NAME,s:score,t:QUIZ.length,d:date,f:foundTime};
-  const body=b64e(JSON.stringify(data)), sig=await hmac(body);
+  /* short payload keeps the QR code small and easy to scan */
+  const body=b64e(JSON.stringify([id,workerName,workerId,1,score,QUIZ.length,date,foundTime])), sig=await hmac(body);
   const url=location.origin+location.pathname+"?verify="+body+"."+sig;
 
   const c=$("certCanvas"), x=c.getContext("2d"), W=c.width, H=c.height;
@@ -571,11 +571,13 @@ async function makeCert(){
   x.font="16px Arial"; x.fillText("Scan the QR code to verify this certificate.",70,650);
 
   if(typeof qrcode==="function"){
+    /* QR sits in the bottom-right corner, below the text, never overlapping it */
     const qr=qrcode(0,"M"); qr.addData(url); qr.make();
-    const n=qr.getModuleCount(), size=230, cell=Math.floor(size/n), qs=cell*n, qx=W-70-qs-16, qy=H-70-qs-16;
-    x.fillStyle="#fff"; x.fillRect(qx-16,qy-16,qs+32,qs+32);
+    const n=qr.getModuleCount(), cell=Math.max(4,Math.floor(205/n)), qs=cell*n, pad=12, boxW=qs+pad*2;
+    const bx=W-64-boxW, by=H-52-boxW;
+    x.fillStyle="#fff"; x.fillRect(bx,by,boxW,boxW);
     x.fillStyle="#000";
-    for(let r=0;r<n;r++) for(let k=0;k<n;k++) if(qr.isDark(r,k)) x.fillRect(qx+k*cell,qy+r*cell,cell,cell);
+    for(let r=0;r<n;r++) for(let k=0;k<n;k++) if(qr.isDark(r,k)) x.fillRect(bx+pad+k*cell,by+pad+r*cell,cell,cell);
   } else {
     x.fillStyle="#b91c1c"; x.font="16px Arial"; x.fillText("QR library not loaded. Check your internet and retry.",W-480,H-100);
   }
@@ -590,7 +592,9 @@ async function checkVerify(){
   let ok=false, d=null;
   try{
     const k=p.lastIndexOf("."), body=p.slice(0,k), sig=p.slice(k+1);
-    d=JSON.parse(b64d(body)); ok=(await hmac(body))===sig;
+    const a=JSON.parse(b64d(body));
+    d={id:a[0],n:a[1],w:a[2],m:MODULE_NAME,s:a[4],t:a[5],d:a[6],f:a[7]};
+    ok=(await hmac(body))===sig;
   }catch(e){ ok=false; }
   const esc=s=>String(s).replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
   $("vbox").innerHTML = ok
