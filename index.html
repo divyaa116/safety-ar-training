@@ -1,165 +1,144 @@
 <!DOCTYPE html>
-<html lang="ta">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mine Safety Training AR</title>
+<title>Mine Safety Training</title>
 <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <style>
   :root { --yellow:#facc15; --dark:#1c1917; --orange:#ea580c; }
   * { box-sizing:border-box; }
-  html,body { margin:0; height:100%; overflow:hidden; background:#120e0b; font-family:Arial,sans-serif; color:#fff; touch-action:none; }
-  #cam { position:fixed; inset:0; width:100%; height:100%; object-fit:cover; display:none; z-index:0; }
-  #camtint { position:fixed; inset:0; z-index:1; pointer-events:none; display:none;
-    background:linear-gradient(rgba(70,45,10,.18), rgba(70,45,10,.18)); }
-  #tun { position:fixed; inset:0; width:100%; height:100%; z-index:1; pointer-events:none; }
+  html,body { margin:0; height:100%; overflow:hidden; background:#000; font-family:Arial,sans-serif; color:#fff; touch-action:none; }
+  #pano { position:fixed; inset:0; width:100%; height:100%; background:#0c0a09; z-index:0; }
   #vig { position:fixed; inset:0; z-index:2; pointer-events:none;
     background:radial-gradient(ellipse at 50% 45%, rgba(0,0,0,0) 50%, rgba(0,0,0,.5) 100%); }
   #lamp { position:fixed; inset:0; z-index:2; pointer-events:none;
     background:radial-gradient(circle at 50% 48%, rgba(255,230,150,.08) 0%, rgba(0,0,0,0) 45%);
     animation:flick 3s infinite; }
   @keyframes flick { 0%,100%{opacity:1} 45%{opacity:.75} 50%{opacity:.95} 70%{opacity:.8} }
-  .dust { position:absolute; width:4px; height:4px; border-radius:50%; background:rgba(255,235,190,.5);
-    animation:rise 7s linear infinite; }
-  @keyframes rise { from{transform:translateY(0);opacity:0} 20%{opacity:.8} to{transform:translateY(-70vh);opacity:0} }
-  #dustbox { position:fixed; inset:0; z-index:2; pointer-events:none; overflow:hidden; }
 
-  .stripe { position:fixed; left:0; right:0; height:14px; z-index:6;
-    background:repeating-linear-gradient(45deg,var(--yellow) 0 14px,var(--dark) 14px 28px); }
-  .top { top:0; } .bottom { bottom:0; }
-  header { position:fixed; top:14px; left:0; right:0; z-index:5; padding:8px 200px 8px 12px; min-height:50px;
-    background:rgba(28,25,23,.8); border-bottom:2px solid var(--yellow); }
-  header h1 { margin:0; font-size:15px; color:var(--yellow); }
+  header { position:fixed; top:0; left:0; right:0; z-index:5; padding:10px 12px;
+    background:rgba(28,25,23,.82); border-bottom:2px solid var(--yellow); }
+  header h1 { margin:0; font-size:17px; color:var(--yellow); }
   header small { color:#e7e5e4; font-size:12px; }
-  .lang { position:absolute; right:6px; top:9px; }
-  .lang button { padding:5px 7px; margin-left:3px; border:2px solid var(--yellow); border-radius:6px;
-    background:rgba(0,0,0,.5); color:var(--yellow); font-weight:bold; font-size:13px; }
 
   #cross { position:fixed; left:50%; top:50%; width:30px; height:30px; margin:-15px 0 0 -15px; z-index:3;
     border:2px solid rgba(250,204,21,.6); border-radius:50%; pointer-events:none; }
   #arrow { position:fixed; left:50%; top:34%; width:70px; height:70px; margin-left:-35px; z-index:5;
     font-size:56px; text-align:center; line-height:70px; color:var(--yellow);
     text-shadow:0 0 10px #000; pointer-events:none; }
-  #timer { position:fixed; top:80px; right:10px; z-index:5; padding:5px 10px; border-radius:6px;
+  #timer { position:fixed; top:68px; right:10px; z-index:5; padding:5px 10px; border-radius:6px;
     background:rgba(28,25,23,.85); border-left:5px solid #ef4444; font-weight:bold; font-size:14px; }
 
-  .item { position:fixed; left:0; top:0; display:none; text-align:center; z-index:4; }
-  .sign { padding:8px 12px; border-radius:6px; font-size:20px; font-weight:bold; line-height:1.25;
-    margin:-24px 0 0 -60px; pointer-events:none; box-shadow:0 4px 14px rgba(0,0,0,.6); }
-  .sign.exit { background:#15803d; border:3px solid #fff; }
-  .sign.warn { background:#facc15; color:#1c1917; border:3px solid #1c1917; }
+  /* world objects */
+  .item { position:fixed; left:0; top:0; display:none; text-align:center; z-index:4; transition:opacity .6s; }
+  .item.out { opacity:0; transition:opacity 3.5s ease-in; }
+  .item img, .item svg { width:100%; height:100%; object-fit:contain; pointer-events:none; display:block;
+    filter:brightness(.85) contrast(1.05); }
 
-  /* electrical panel + fire */
-  .pbox { width:150px; height:200px; margin:-100px 0 0 -75px; border:5px solid #27272a; border-radius:8px;
-    background:linear-gradient(#71717a,#3f3f46); box-shadow:0 0 40px 10px rgba(234,88,12,.55);
-    transition:box-shadow 3.5s ease-in; pointer-events:none; }
-  .pbox.out { box-shadow:0 0 0 0 rgba(0,0,0,0); }
-  .pbox .ph { background:#facc15; color:#1c1917; font-weight:bold; font-size:15px; padding:4px 0; }
-  .pbox .sw { font-size:24px; letter-spacing:6px; color:#ef4444; margin-top:12px; }
-  .pbox .sw.g { color:#a3e635; }
-  .fireWrap { position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none;
-    transition:opacity .6s, transform .6s; }
-  .pbox.out .fireWrap { opacity:0; transform:scale(.15) translateY(60px); transition:opacity 3.5s ease-in, transform 3.5s ease-in; }
-  .fl { position:absolute; left:50%; top:-70px; margin-left:-50px; font-size:100px; line-height:100px;
-    animation:fireflick .35s infinite alternate; }
-  .fl2 { position:absolute; right:-26px; top:70px; font-size:56px; line-height:56px;
-    animation:fireflick .28s infinite alternate; }
-  @keyframes fireflick { from{transform:scale(1)} to{transform:scale(1.18)} }
-  .smk { position:absolute; left:50%; top:-50px; margin-left:-35px; font-size:70px; opacity:0;
-    transition:opacity 3s 1s; pointer-events:none; }
-  .pbox.out .smk { opacity:.85; }
+  .item.fire { width:200px; height:200px; margin:-100px 0 0 -100px; mix-blend-mode:screen; pointer-events:none; }
+  .item.fire::before { content:""; position:absolute; left:-110px; top:-110px; width:420px; height:420px;
+    background:radial-gradient(circle,rgba(255,120,30,.42),rgba(255,120,30,0) 62%); animation:glow .3s infinite alternate; }
+  @keyframes glow { from{opacity:.75} to{opacity:1} }
+  .item.fire video { position:relative; width:100%; height:100%; object-fit:cover; }
+  .flame { position:relative; width:100%; height:100%; }
+  .flame i { position:absolute; bottom:10px; left:50%; border-radius:50% 50% 50% 50% / 60% 60% 40% 40%;
+    background:radial-gradient(circle at 50% 70%,#fff7b0,#ffb300 40%,#ff5a00 70%,rgba(255,60,0,0));
+    filter:blur(3px); transform-origin:50% 100%; animation:fl .25s infinite alternate; }
+  .flame i:nth-child(1){ width:90px; height:130px; margin-left:-45px; }
+  .flame i:nth-child(2){ width:60px; height:90px; margin-left:-75px; animation-delay:.1s; }
+  .flame i:nth-child(3){ width:55px; height:80px; margin-left:12px; animation-delay:.18s; }
+  @keyframes fl { from{transform:scale(1,.92) rotate(-2deg)} to{transform:scale(1.06,1.08) rotate(2deg)} }
 
-  .ext { width:64px; height:64px; margin:-32px 0 0 -32px; font-size:34px; line-height:60px; border-radius:8px;
-    background:rgba(250,204,21,.22); border:2px solid rgba(250,204,21,.55); }
-  .ext.hint { animation:pulse 1s infinite; }
-  @keyframes pulse { 50% { box-shadow:0 0 22px 8px #facc15; } }
-  .bucket { width:72px; height:72px; margin:-36px 0 0 -36px; font-size:50px; line-height:70px; border-radius:8px;
-    background:rgba(250,204,21,.18); border:2px solid rgba(250,204,21,.45); }
-  .bucket::after { content:""; position:absolute; left:6px; right:6px; bottom:-12px; height:12px;
-    background:rgba(0,0,0,.55); border-radius:50%; }
+  .sign { padding:7px 12px; border-radius:4px; font-size:17px; font-weight:bold; line-height:1.25;
+    margin:-22px 0 0 -60px; pointer-events:none; box-shadow:0 3px 10px rgba(0,0,0,.6); opacity:.92; }
+  .sign.exit { background:#15803d; border:2px solid #fff; }
+  .sign.warn { background:#facc15; color:#1c1917; border:2px solid #1c1917; }
+  .sign.tag { background:#facc15; color:#1c1917; border:2px solid #1c1917; font-size:14px; }
 
-  /* extinguisher in the worker's hands */
-  #held { position:fixed; right:14px; bottom:255px; z-index:4; font-size:96px; line-height:96px; display:none;
-    transform:rotate(-12deg); text-shadow:0 0 18px #000; pointer-events:none; }
-  #spray { position:fixed; right:96px; bottom:330px; z-index:4; font-size:60px; display:none; pointer-events:none; }
-  #spray.on { display:block; animation:spr .7s infinite; }
-  #spray.sweep { animation:spr .7s infinite, sweepx 1.6s infinite alternate ease-in-out; }
-  @keyframes spr { from{opacity:1; margin-right:0} to{opacity:0; margin-right:130px} }
-  @keyframes sweepx { from{bottom:300px} to{bottom:380px} }
+  .ext { width:60px; height:108px; margin:-54px 0 0 -30px; }
+  .bucket { width:84px; height:84px; margin:-42px 0 0 -42px; }
+  .ext.hint, .bucket.hint { animation:pulse 1s infinite; }
+  @keyframes pulse { 50% { filter:drop-shadow(0 0 12px #facc15) drop-shadow(0 0 20px #facc15); } }
 
-  .panel { position:fixed; z-index:5; left:0; right:0; bottom:14px; padding:12px 14px 10px;
-    background:rgba(28,25,23,.92); border-top:3px solid var(--yellow); touch-action:pan-y; }
+  #held { position:fixed; right:14px; bottom:245px; z-index:4; width:90px; height:170px; display:none;
+    transform:rotate(-10deg); pointer-events:none; }
+  #held img, #held svg { width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 0 10px #000); }
+  #spray { position:fixed; right:100px; bottom:330px; width:140px; height:60px; z-index:4; display:none; pointer-events:none; }
+  #spray.on { display:block; }
+  #spray i { position:absolute; right:0; top:16px; width:28px; height:28px; border-radius:50%;
+    background:radial-gradient(circle,#fff,rgba(255,255,255,0)); animation:foam .8s infinite; }
+  #spray i:nth-child(2){ animation-delay:.25s } #spray i:nth-child(3){ animation-delay:.5s }
+  @keyframes foam { from{transform:translateX(0) scale(.5);opacity:.95} to{transform:translateX(-160px) scale(2.8);opacity:0} }
+  #spray.sweep { animation:sweepx 1.6s infinite alternate ease-in-out; }
+  @keyframes sweepx { from{bottom:310px} to{bottom:390px} }
+
+  .panel { position:fixed; z-index:5; left:0; right:0; bottom:0; padding:12px 14px 14px;
+    background:rgba(28,25,23,.93); border-top:3px solid var(--yellow); touch-action:pan-y; }
   .panel h2 { margin:0 0 6px; font-size:18px; color:var(--yellow); }
-  .panel p { margin:0 0 8px; font-size:16px; line-height:1.45; }
+  .panel p { margin:0 0 10px; font-size:16px; line-height:1.45; }
   .row { display:flex; align-items:center; justify-content:space-between; gap:8px; }
-  .row button { padding:10px 16px; border:0; border-radius:6px; font-size:18px; font-weight:bold; }
+  .row button { padding:10px 18px; border:0; border-radius:6px; font-size:18px; font-weight:bold; }
   .nav { background:var(--yellow); color:var(--dark); }
-  .voice { background:var(--orange); color:#fff; }
   #count { font-size:14px; color:#d6d3d1; }
   .bar { height:6px; background:#44403c; border-radius:3px; margin-bottom:8px; overflow:hidden; }
   .bar div { height:100%; width:0; background:linear-gradient(90deg,var(--orange),var(--yellow)); transition:width .3s; }
   #lesson { display:none; }
-  #arbtn { margin-top:8px; width:100%; padding:10px; border:0; border-radius:6px; background:#16a34a; color:#fff; font-size:16px; font-weight:bold; }
+  #arbtn { margin-top:8px; width:100%; padding:10px; border:0; border-radius:6px; background:#374151; color:#fff; font-size:15px; }
   #hiddenAR { position:fixed; bottom:0; left:0; width:2px; height:2px; opacity:.01; z-index:1; }
 
-  #start { position:fixed; inset:0; z-index:10; background:rgba(0,0,0,.94); overflow:auto;
-    display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:22px; }
-  #start h2 { color:var(--yellow); margin:0 0 4px; }
-  #start p { color:#d6d3d1; margin:6px 0; font-size:15px; }
-  .btns { display:flex; flex-direction:column; align-items:center; width:100%; }
-  #start button { margin-top:14px; width:80%; max-width:320px; padding:16px; border:0; border-radius:10px;
-    background:var(--yellow); color:var(--dark); font-size:22px; font-weight:bold; }
-  #start button.en { background:#fff; }
+  .overlay { position:fixed; inset:0; z-index:10; background:rgba(12,10,9,.95); overflow:auto; display:none;
+    padding:20px 16px; touch-action:pan-y; }
+  .card { max-width:520px; margin:0 auto; }
+  .card h2 { color:var(--yellow); margin:0 0 6px; }
+  .card p { color:#d6d3d1; line-height:1.5; }
+  .card input { width:100%; padding:14px; margin:8px 0; border-radius:8px; border:2px solid #57534e;
+    background:#1c1917; color:#fff; font-size:18px; }
+  .big { width:100%; margin-top:12px; padding:15px; border:0; border-radius:10px; background:var(--yellow);
+    color:var(--dark); font-size:20px; font-weight:bold; }
+  .big.alt { background:#44403c; color:#fff; }
+  .opt { display:block; width:100%; text-align:left; margin-top:10px; padding:14px; border-radius:10px;
+    border:2px solid #57534e; background:#1c1917; color:#fff; font-size:17px; }
+  .opt.good { border-color:#22c55e; background:#14532d; }
+  .opt.bad { border-color:#ef4444; background:#7f1d1d; }
+  #qexp { margin-top:12px; padding:12px; border-radius:8px; background:#292524; display:none; }
+  #qmeta { color:#a8a29e; font-size:14px; margin-bottom:6px; }
+  #err { color:#fca5a5; min-height:20px; font-size:15px; }
+  #certCanvas { width:100%; border-radius:6px; background:#fff; margin-top:8px; }
   #toast { position:fixed; left:12px; right:12px; top:46%; z-index:9; padding:12px; border-radius:8px; text-align:center;
     font-size:17px; font-weight:bold; display:none; }
 
   @media (orientation: landscape) {
-    header { padding:4px 200px 4px 12px; min-height:40px; }
+    header { padding:6px 12px; }
     header small { display:none; }
-    header h1 { font-size:15px; }
-    .lang { top:5px; }
-    .panel { left:auto; right:0; width:44%; top:62px; bottom:14px; border-top:0; border-left:3px solid var(--yellow);
-      overflow:auto; padding:10px 14px; }
-    #timer { top:62px; right:auto; left:10px; }
+    .panel { left:auto; right:0; width:44%; top:44px; bottom:0; border-top:0; border-left:3px solid var(--yellow); overflow:auto; }
+    #timer { top:52px; right:auto; left:10px; }
     #held { right:calc(44% + 14px); bottom:30px; }
-    #spray { right:calc(44% + 96px); bottom:90px; }
-    @keyframes sweepx { from{bottom:70px} to{bottom:150px} }
-    #start { padding:10px; }
-    #start h2 { font-size:18px; }
-    .btns { flex-direction:row; justify-content:center; gap:14px; }
-    #start button { width:44%; margin-top:8px; padding:12px; font-size:20px; }
+    #spray { right:calc(44% + 100px); bottom:120px; }
+    @keyframes sweepx { from{bottom:100px} to{bottom:180px} }
   }
 </style>
 </head>
 <body>
-  <video id="cam" autoplay playsinline muted></video>
-  <div id="camtint"></div>
-  <canvas id="tun"></canvas>
-  <div id="vig"></div><div id="lamp"></div><div id="dustbox"></div>
-  <div class="stripe top"></div>
+  <canvas id="pano"></canvas>
+  <div id="vig"></div><div id="lamp"></div>
 
   <header>
-    <h1 id="title"></h1>
-    <small id="sub"></small>
-    <div class="lang">
-      <button onclick="setLang('ta')">தமிழ்</button>
-      <button onclick="setLang('en')">EN</button>
-      <button onclick="retryCam()">📷</button>
-      <button id="tunBtn" onclick="toggleTun()">🕳</button>
-    </div>
+    <h1>Mine Safety Training</h1>
+    <small>Fire &amp; Explosion Response</small>
   </header>
 
   <div id="timer"></div>
   <div id="cross"></div>
   <div id="arrow">⬆</div>
   <div id="toast"></div>
-  <div id="held">🧯</div>
-  <div id="spray">💨</div>
+  <div id="held"></div>
+  <div id="spray"><i></i><i></i><i></i></div>
 
   <div class="panel" id="search">
-    <h2 id="sTitle"></h2>
-    <p id="sText"></p>
-    <div class="row"><button class="voice" onclick="speakSearch()">🔊</button></div>
+    <h2>Emergency! Fire at the electrical panel!</h2>
+    <p>Turn your phone around to find the correct fire extinguisher on the mine wall. The arrow shows the way. Tap it when you see it.</p>
   </div>
 
   <div class="panel" id="lesson">
@@ -168,97 +147,131 @@
     <p id="stepText"></p>
     <div class="row">
       <button class="nav" onclick="move(-1)">◀</button>
-      <button class="voice" onclick="speak()">🔊</button>
       <span id="count"></span>
-      <button class="nav" onclick="move(1)">▶</button>
+      <button class="nav" id="nextBtn" onclick="move(1)">▶</button>
     </div>
-    <button id="arbtn" onclick="openAR()"></button>
+    <button id="arbtn" onclick="openAR()">View the extinguisher in AR (ARCore)</button>
   </div>
 
   <model-viewer id="hiddenAR" src="extinguisher.glb" alt="Fire extinguisher"
     ar ar-modes="webxr scene-viewer"></model-viewer>
-  <div class="stripe bottom"></div>
 
-  <div id="start">
-    <h2>சுரங்கப் பாதுகாப்பு பயிற்சி</h2>
-    <h2>Mine Safety Training</h2>
-    <p>மொழியைத் தேர்ந்தெடுக்கவும் / Choose your language</p>
-    <div class="btns">
-      <button onclick="startAll('ta')">தமிழ் - தொடங்கு</button>
-      <button class="en" onclick="startAll('en')">English - Start</button>
+  <!-- START -->
+  <div class="overlay" id="start" style="display:block">
+    <div class="card" style="margin-top:8vh">
+      <h2>Mine Safety Training</h2>
+      <p>Fire &amp; Explosion Response. Complete the training and the quiz to earn a verifiable certificate.</p>
+      <input id="wname" type="text" placeholder="Your full name" maxlength="40" autocomplete="off">
+      <input id="wid" type="text" placeholder="Worker ID (optional)" maxlength="20" autocomplete="off">
+      <div id="err"></div>
+      <button class="big" onclick="startAll()">Start training</button>
+      <p style="font-size:14px">Allow motion access if your phone asks.</p>
     </div>
-    <p>கேமரா மற்றும் இயக்க அனுமதியை ஏற்கவும் / Allow camera and motion access</p>
+  </div>
+
+  <!-- QUIZ -->
+  <div class="overlay" id="quiz">
+    <div class="card">
+      <div id="qmeta"></div>
+      <h2 id="qtext"></h2>
+      <div id="qopts"></div>
+      <div id="qexp"></div>
+      <button class="big" id="qnext" style="display:none" onclick="nextQ()">Next</button>
+    </div>
+  </div>
+
+  <!-- RESULT -->
+  <div class="overlay" id="result">
+    <div class="card" style="margin-top:8vh">
+      <h2 id="rtitle"></h2>
+      <p id="rtext"></p>
+      <button class="big" id="rcert" onclick="makeCert()">Generate my certificate</button>
+      <button class="big alt" id="rretry" onclick="startQuiz()">Try the quiz again</button>
+      <button class="big alt" id="rlesson" onclick="reviewLesson()">Review the lesson</button>
+    </div>
+  </div>
+
+  <!-- CERTIFICATE -->
+  <div class="overlay" id="cert">
+    <div class="card">
+      <h2>Your certificate</h2>
+      <canvas id="certCanvas" width="1000" height="700"></canvas>
+      <a id="dl" download="mine-safety-certificate.png"><button class="big">Download certificate (PNG)</button></a>
+      <button class="big alt" onclick="location.href=location.pathname">Start over</button>
+    </div>
+  </div>
+
+  <!-- VERIFY (opens when someone scans the QR code) -->
+  <div class="overlay" id="verify">
+    <div class="card" style="margin-top:8vh" id="vbox"></div>
   </div>
 
 <script>
-const T = {
-  ta: { title:"சுரங்கப் பாதுகாப்பு பயிற்சி", sub:"தீ மற்றும் வெடிப்பு பாதுகாப்பு",
-        sTitle:"🔥 அவசரம்! மின் பலகையில் தீ!",
-        sText:"போனைச் சுற்றித் திருப்பி சுவரில் உள்ள சரியான தீ அணைப்பானைக் கண்டுபிடியுங்கள். அம்புக்குறி வழி காட்டும். கண்டதும் அதைத் தொடுங்கள்.",
-        found:"சரி! அணைப்பான் கிடைத்தது. நேரம்: ", wrong:"தவறு! மின் தீக்கு தண்ணீர் பயன்படுத்தக் கூடாது!",
-        out:"🔥 தீ அணைந்தது! நன்று!",
-        camFail:"கேமரா கிடைக்கவில்லை. கேமராவைப் பயன்படுத்தும் பிற செயலிகளை (அழைப்பு போன்றவை) மூடிவிட்டு 📷 தொடவும்.",
-        arBtn:"📷 உங்கள் இடத்தில் அணைப்பானை வைத்துப் பாருங்கள்", secs:" வி" },
-  en: { title:"Mine Safety Training", sub:"Fire & Explosion Response",
-        sTitle:"🔥 Emergency! Fire at the electrical panel!",
-        sText:"Turn your phone around to find the correct fire extinguisher on the wall. The arrow shows the way. Tap it when you see it.",
-        found:"Correct! Extinguisher found. Time: ", wrong:"Wrong! Never use water on an electrical fire!",
-        out:"🔥 Fire is out! Well done!",
-        camFail:"Camera not available. Close other apps using the camera (like calls) and tap 📷.",
-        arBtn:"📷 Place the extinguisher in your space (AR)", secs:" s" }
-};
+/* ======== settings ======== */
+const BG_FILES = ["mine_bg.jpg", "mining_bakground.jpg"];   // first one found is used
+const SECRET   = "change-this-secret-before-demo-2026";      // used to sign certificates
+const MODULE_NAME = "Fire & Explosion Response (Electrical Fire)";
+const PASS_MARK = 4;                                         // out of 5 questions
 
 const steps = [
-  { ta:{t:"முதலில் இதைச் செய்யுங்கள்",x:"தீ பிடித்தால் முதலில் மற்றவர்களை எச்சரிக்கை செய்யுங்கள். தீ சிறியதாக இருந்தால் மட்டும் அணைப்பானைப் பயன்படுத்துங்கள். வெளியேறும் வழி எப்போதும் உங்கள் பின்னால் இருக்க வேண்டும்."},
-    en:{t:"Do this first",x:"When a fire starts, alert others first. Use the extinguisher only if the fire is small. Always keep your exit behind you."} },
-  { ta:{t:"P - இழுக்கவும்",x:"அணைப்பானின் பாதுகாப்புப் பின்னை இழுக்கவும்."}, en:{t:"P - Pull",x:"Pull the safety pin of the extinguisher."} },
-  { ta:{t:"A - குறி வையுங்கள்",x:"நெருப்பின் அடிப்பகுதியை நோக்கிக் குறி வையுங்கள்."}, en:{t:"A - Aim",x:"Aim at the base of the fire."} },
-  { ta:{t:"S - அழுத்துங்கள்",x:"கைப்பிடியை அழுத்துங்கள்."}, en:{t:"S - Squeeze",x:"Squeeze the handle."} },
-  { ta:{t:"S - இடம் வலமாக தெளியுங்கள்",x:"அணைப்பானை இடமிருந்து வலமாக நகர்த்தித் தெளியுங்கள்."}, en:{t:"S - Sweep",x:"Sweep from side to side across the base of the fire."} }
+  { t:"Do this first", x:"When a fire starts, alert others first. Use the extinguisher only if the fire is small. Always keep your exit behind you." },
+  { t:"P - Pull", x:"Pull the safety pin of the extinguisher." },
+  { t:"A - Aim", x:"Aim at the base of the fire." },
+  { t:"S - Squeeze", x:"Squeeze the handle." },
+  { t:"S - Sweep", x:"Sweep from side to side across the base of the fire." }
 ];
 
-let lang="ta", i=0, phase="idle", t0=0, foundTime=0, camStarted=false, noCam=true, tunOn=true, fireT=null;
-const $ = id => document.getElementById(id);
+const QUIZ = [
+  { q:"A fire starts at an electrical panel in the mine. What should you do FIRST?",
+    o:["Fight it alone with a bucket of water","Alert others and raise the alarm","Ignore it because it is small","Take a photo for the report"], a:1,
+    e:"Always alert others first, so everyone can get out safely and help can come." },
+  { q:"Which of these must NOT be used on an electrical fire?",
+    o:["CO2 extinguisher","Dry powder extinguisher","A bucket of water","All three are safe"], a:2,
+    e:"Water conducts electricity and can cause a deadly shock." },
+  { q:"What does PASS stand for?",
+    o:["Push, Aim, Spray, Stop","Pull, Aim, Squeeze, Sweep","Pull, Alert, Shout, Spray","Pick, Aim, Squeeze, Stand"], a:1,
+    e:"Pull the pin, Aim at the base, Squeeze the handle, Sweep side to side." },
+  { q:"Where should you aim the extinguisher?",
+    o:["At the top of the flames","At the smoke","At the base of the fire","At the ceiling"], a:2,
+    e:"The base is the fuel source. Hitting the flames alone will not put the fire out." },
+  { q:"While fighting a small fire, where should your exit be?",
+    o:["Behind the fire","Behind you","Far away from you","It does not matter"], a:1,
+    e:"Keep the exit behind you so you can leave quickly if the fire grows." }
+];
 
-/* ---------- text + scene state ---------- */
+let phase="idle", i=0, t0=0, foundTime=0, fireT=null, qi=0, score=0, answered=false, workerName="", workerId="";
+const $ = id => document.getElementById(id);
+const show = id => $(id).style.display="block";
+const hide = id => $(id).style.display="none";
+
+/* ======== lesson ======== */
 function render(){
-  const L=T[lang];
-  $("title").textContent=L.title; $("sub").textContent=L.sub;
-  $("sTitle").textContent=L.sTitle; $("sText").textContent=L.sText;
-  $("arbtn").textContent=L.arBtn;
-  $("stepTitle").textContent=steps[i][lang].t;
-  $("stepText").textContent=steps[i][lang].x;
+  $("stepTitle").textContent=steps[i].t;
+  $("stepText").textContent=steps[i].x;
   $("count").textContent=(i+1)+" / "+steps.length;
   $("fill").style.width=((i+1)/steps.length*100)+"%";
+  $("nextBtn").textContent = (i===steps.length-1) ? "Quiz ▶" : "▶";
   if(phase==="lesson") updateScene();
 }
 function updateScene(){
-  $("held").style.display="block";
+  show("held");
   $("spray").className = (i>=3) ? (i===4 ? "on sweep" : "on") : "";
-  const p=items[0].el_;
+  const f=items[0].el_;
   clearTimeout(fireT);
   if(i===4){
-    p.classList.add("out");
-    fireT=setTimeout(()=>{ if(i===4&&phase==="lesson") toast(T[lang].out,"rgba(21,128,61,.95)"); },3800);
-  } else p.classList.remove("out");
+    f.classList.add("out");
+    fireT=setTimeout(()=>{ if(i===4&&phase==="lesson"){ toast("Fire is out! Well done!","rgba(21,128,61,.95)"); $("spray").className=""; } },3800);
+  } else f.classList.remove("out");
 }
-function setLang(l){ lang=l; render(); }
-function move(d){ i=Math.max(0,Math.min(steps.length-1,i+d)); speechSynthesis.cancel(); render(); }
-
-/* ---------- voice ---------- */
-function tts(text,l){ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(text); u.lang=l; speechSynthesis.speak(u); }
-function speak(){
-  const s=steps[i];
-  if(lang==="ta"){ const a=new Audio("ta"+(i+1)+".mp3"); a.play().catch(()=>tts(s.ta.x,"ta-IN")); }
-  else tts(s.en.x,"en-IN");
+function move(d){
+  if(d>0 && i===steps.length-1){ startQuiz(); return; }
+  i=Math.max(0,Math.min(steps.length-1,i+d)); render();
 }
-function speakSearch(){
-  const L=T[lang];
-  if(lang==="ta"){ const a=new Audio("ta0.mp3"); a.play().catch(()=>tts(L.sTitle+" "+L.sText,"ta-IN")); }
-  else tts(L.sTitle+" "+L.sText,"en-IN");
+function reviewLesson(){
+  hide("result"); hide("quiz"); phase="lesson"; i=0; show("lesson"); render();
 }
 
-/* ---------- sensors + math (portrait and landscape) ---------- */
+/* ======== sensors + math (portrait and landscape) ======== */
 let A=0,B=0,G=0,haveSensor=false,realSensor=false,az0=null;
 const rad=d=>d*Math.PI/180;
 function mul(a,b){ const r=[[0,0,0],[0,0,0],[0,0,0]];
@@ -291,161 +304,145 @@ addEventListener("pointermove",e=>{
   A+=rad((e.clientX-lastX)*0.3); lastX=e.clientX;
 });
 
-/* ---------- camera ---------- */
-function setCamUI(on){
-  noCam=!on;
-  $("cam").style.display=on?"block":"none";
-  $("camtint").style.display=on?"block":"none";
-}
-async function ensureCam(){
-  if(camStarted) return true;
-  try{
-    const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"},audio:false});
-    $("cam").srcObject=s; camStarted=true; return true;
-  }catch(e){ return false; }
-}
-async function retryCam(){
-  const ok=await ensureCam(); setCamUI(ok);
-  if(!ok) toast(T[lang].camFail,"rgba(127,29,29,.95)",5000);
-}
-function toggleTun(){ tunOn=!tunOn; $("tunBtn").style.opacity=tunOn?1:.45; }
+/* ======== WebGL mine world from the photo ======== */
+const pano=$("pano");
+const gl=pano.getContext("webgl",{antialias:false});
+let prog,U={},texReady=false,vspan=60,pxw=0.001,pxh=0.001;
 
-/* ---------- 3D mine tunnel drawn over the camera ---------- */
-const tc=$("tun"), tx=tc.getContext("2d");
-let CW=0,CH=0,CF=1,CR=null;
-function sizeTun(){
+function initGL(){
+  const vs="attribute vec2 p; varying vec2 v; void main(){ v=p; gl_Position=vec4(p,0.0,1.0); }";
+  const fs=`
+  #ifdef GL_FRAGMENT_PRECISION_HIGH
+  precision highp float;
+  #else
+  precision mediump float;
+  #endif
+  varying vec2 v;
+  uniform sampler2D tex;
+  uniform mat3 R;
+  uniform vec2 sc, px;
+  uniform float az0, vspan;
+  void main(){
+    vec3 d = R * vec3(v.x*sc.x, v.y*sc.y, -1.0);
+    float az = atan(d.x, d.y)*57.29578;
+    float el = atan(d.z, length(d.xy))*57.29578;
+    float t = mod(az-az0+45.0,360.0)/90.0;
+    float ti = floor(t); float fr = t-ti;
+    if(mod(ti,2.0)>=1.0) fr = 1.0-fr;
+    float vy = 0.5-el/vspan; float shade=1.0;
+    if(vy<0.0){ vy=0.0; shade=0.55; } else if(vy>1.0){ vy=1.0; shade=0.45; }
+    vec2 uv = vec2(fr,vy);
+    vec3 c0 = texture2D(tex,uv).rgb;
+    vec3 s = texture2D(tex,uv+vec2(px.x,0.0)).rgb + texture2D(tex,uv-vec2(px.x,0.0)).rgb
+           + texture2D(tex,uv+vec2(0.0,px.y)).rgb + texture2D(tex,uv-vec2(0.0,px.y)).rgb;
+    vec3 c = clamp(c0 + (c0 - s*0.25)*0.7, 0.0, 1.0)*shade;
+    float g = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898,78.233)))*43758.5453);
+    c += (g-0.5)*0.03;
+    gl_FragColor = vec4(c,1.0);
+  }`;
+  function sh(type,src){ const s=gl.createShader(type); gl.shaderSource(s,src); gl.compileShader(s); return s; }
+  prog=gl.createProgram();
+  gl.attachShader(prog,sh(gl.VERTEX_SHADER,vs)); gl.attachShader(prog,sh(gl.FRAGMENT_SHADER,fs));
+  gl.linkProgram(prog); gl.useProgram(prog);
+  const buf=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,buf);
+  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1, 1,-1, -1,1, 1,1]),gl.STATIC_DRAW);
+  const loc=gl.getAttribLocation(prog,"p"); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
+  ["tex","R","sc","px","az0","vspan"].forEach(n=>U[n]=gl.getUniformLocation(prog,n));
+}
+function sizeGL(){
   const s=Math.min(window.devicePixelRatio||1,1.5);
-  tc.width=Math.round(innerWidth*s); tc.height=Math.round(innerHeight*s);
-  tx.setTransform(s,0,0,s,0,0);
+  pano.width=Math.round(innerWidth*s); pano.height=Math.round(innerHeight*s);
+  gl.viewport(0,0,pano.width,pano.height);
 }
-addEventListener("resize",sizeTun);
-addEventListener("orientationchange",()=>setTimeout(sizeTun,300));
+addEventListener("resize",sizeGL);
+addEventListener("orientationchange",()=>setTimeout(sizeGL,300));
 
-/* local tunnel coords: u = along tunnel (0 = you, + = ahead), v = right, z = up */
-function W(u,v,z){ const a=rad(az0); return [u*Math.sin(a)+v*Math.cos(a), u*Math.cos(a)-v*Math.sin(a), z]; }
-function toCam(P){ return [0,1,2].map(c=>CR[0][c]*P[0]+CR[1][c]*P[1]+CR[2][c]*P[2]); }
-function L(p){ return toCam(W(p[0],p[1],p[2])); }
-
-function clipNear(pts){
-  const out=[], N=.15;
-  for(let i=0;i<pts.length;i++){
-    const a=pts[i], b=pts[(i+1)%pts.length];
-    const da=-a[2]-N, db=-b[2]-N;
-    if(da>=0) out.push(a);
-    if((da>=0)!==(db>=0)){ const t=da/(da-db); out.push([a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t]); }
-  }
-  return out;
+function loadImage(names,cb){
+  let k=0;
+  (function next(){
+    if(k>=names.length){ alert("Background photo not found. Upload mining_bakground.jpg to the repo."); return; }
+    const im=new Image(); im.onload=()=>cb(im); im.onerror=next; im.src=names[k++];
+  })();
 }
-function quad(pts,color,alpha){
-  const cam=clipNear(pts.map(L)); if(cam.length<3) return;
-  let dsum=0;
-  tx.beginPath();
-  cam.forEach((c,k)=>{
-    const dp=-c[2]; dsum+=dp;
-    const sx=CW/2+CF*c[0]/dp, sy=CH/2-CF*c[1]/dp;
-    if(k) tx.lineTo(sx,sy); else tx.moveTo(sx,sy);
-  });
-  tx.closePath();
-  tx.globalAlpha=alpha; tx.fillStyle=color; tx.fill();
-  tx.globalAlpha=Math.min(.6,(dsum/cam.length)/55)*alpha; tx.fillStyle="#000"; tx.fill();
+function makeTexture(im){
+  const maxW=Math.min(gl.getParameter(gl.MAX_TEXTURE_SIZE),4096);
+  const sc=Math.min(1,maxW/im.width);
+  const c=document.createElement("canvas"); c.width=Math.round(im.width*sc); c.height=Math.round(im.height*sc);
+  c.getContext("2d").drawImage(im,0,0,c.width,c.height);
+  vspan=90*im.height/im.width; pxw=1/c.width; pxh=1/c.height;
+  const t=gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,t);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,c);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+  texReady=true;
 }
-function seg(a,b,wm,col){
-  let A_=L(a), B_=L(b); const N=.15, da=-A_[2]-N, db=-B_[2]-N;
-  if(da<0&&db<0) return;
-  if(da<0||db<0){
-    const t=da/(da-db);
-    const P=[A_[0]+(B_[0]-A_[0])*t, A_[1]+(B_[1]-A_[1])*t, A_[2]+(B_[2]-A_[2])*t];
-    if(da<0) A_=P; else B_=P;
-  }
-  const d1=-A_[2], d2=-B_[2];
-  tx.beginPath();
-  tx.moveTo(CW/2+CF*A_[0]/d1, CH/2-CF*A_[1]/d1);
-  tx.lineTo(CW/2+CF*B_[0]/d2, CH/2-CF*B_[1]/d2);
-  tx.lineWidth=Math.max(1.2,CF*wm/((d1+d2)/2));
-  tx.strokeStyle=col; tx.globalAlpha=.95; tx.stroke();
+function drawPano(R){
+  if(!texReady) return;
+  const w=innerWidth,h=innerHeight,f=focal();
+  const m=[R[0][0],R[1][0],R[2][0], R[0][1],R[1][1],R[2][1], R[0][2],R[1][2],R[2][2]];
+  gl.uniformMatrix3fv(U.R,false,new Float32Array(m));
+  gl.uniform2f(U.sc,(w/2)/f,(h/2)/f);
+  gl.uniform2f(U.px,pxw,pxh);
+  gl.uniform1f(U.az0,az0); gl.uniform1f(U.vspan,vspan);
+  gl.uniform1i(U.tex,0);
+  gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
 }
 
-const RING=[[-2.2,-1.6],[-2.3,-0.6],[-2.1,0.4],[-1.6,1.2],[-0.7,1.5],[0.7,1.5],[1.6,1.2],[2.1,0.4],[2.3,-0.6],[2.2,-1.6]];
-const U0=-45, STEP=3, NU=17, UE=U0+NU*STEP;   // UE = 6 : rock face at the end
-const hs=(a,b)=>{ const x=Math.sin(a*127.1+b*311.7)*43758.5453; return x-Math.floor(x); };
-function V(iu,k){
-  const r=RING[k], fl=(k===0||k===9)?.2:1;
-  return [U0+iu*STEP, r[0]+(hs(iu,k)-.5)*.28*fl, r[1]+(hs(iu+9,k)-.5)*.28*fl];
-}
+/* ======== objects in the mine ========
+   off = left/right angle from where you face at START (0 = ahead, 90 = right, 180 = behind, -90 = left)
+   el  = up/down angle (negative = lower)   -> change these numbers to move things              */
+function extSVG(id){ return '<svg viewBox="0 0 60 120" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="'+id+'" x1="0" x2="1"><stop offset="0" stop-color="#7f1d1d"/><stop offset=".45" stop-color="#ef4444"/><stop offset="1" stop-color="#7f1d1d"/></linearGradient></defs><ellipse cx="30" cy="116" rx="20" ry="3.5" fill="rgba(0,0,0,.45)"/><rect x="14" y="36" width="32" height="78" rx="9" fill="url(#'+id+')"/><rect x="21" y="22" width="18" height="16" rx="3" fill="#374151"/><rect x="17" y="14" width="26" height="9" rx="3" fill="#111827"/><path d="M43 20 q14 4 10 22 q-2 10 -9 14" stroke="#111827" stroke-width="4" fill="none"/><rect x="19" y="58" width="22" height="26" rx="2" fill="#f5f5f4"/><rect x="22" y="62" width="16" height="4" fill="#dc2626"/><circle cx="30" cy="30" r="5" fill="#e5e7eb" stroke="#111827" stroke-width="1.5"/></svg>'; }
+const BUCKET_SVG='<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><ellipse cx="40" cy="74" rx="26" ry="4" fill="rgba(0,0,0,.45)"/><path d="M14 24 L22 70 Q40 78 58 70 L66 24 Z" fill="#9ca3af"/><ellipse cx="40" cy="24" rx="26" ry="6" fill="#d1d5db"/><ellipse cx="40" cy="25" rx="22" ry="4.5" fill="#3b82f6"/><path d="M14 24 Q40 -6 66 24" stroke="#4b5563" stroke-width="2.5" fill="none"/><rect x="29" y="42" width="22" height="12" rx="2" fill="#1d4ed8"/><text x="40" y="51" font-size="8" font-family="Arial" font-weight="bold" fill="#fff" text-anchor="middle">WATER</text></svg>';
+const FLAME_HTML='<div class="flame"><i></i><i></i><i></i></div>';
 
-function drawTunnel(){
-  tx.clearRect(0,0,CW,CH);
-  if(!tunOn) return;
-  const al=noCam?1:.6;
-  tx.lineCap="butt";
-  for(let iu=0;iu<NU;iu++) for(let k=0;k<10;k++){
-    const k2=(k+1)%10;
-    const s=26+hs(iu*3+k,k*7+1)*40+(k===9?18:0)+((k>=3&&k<=6)?-6:0);
-    quad([V(iu,k),V(iu+1,k),V(iu+1,k2),V(iu,k2)],"rgb("+(s*1.15|0)+","+(s|0)+","+(s*.85|0)+")",al);
-  }
-  quad(Array.from({length:10},(_,k)=>V(NU,k)),"rgb(18,14,11)",al);
-
-  seg([U0,1.8,.9],[UE,1.8,.9],.3,"#6b7280");          // ventilation pipe
-  seg([U0,-1.85,1],[UE,-1.85,1],.05,"#0b0b0b");        // cable
-  [-.45,.45].forEach(v=>seg([U0,v,-1.55],[UE,v,-1.55],.07,"#a1a1aa"));   // rails
-  for(let u=U0;u<UE;u+=1) seg([u,-.85,-1.58],[u,.85,-1.58],.14,"#5b3a1d"); // sleepers
-
-  const fp=[[-2,-1.6],[-2,.4],[-1.7,1.28],[1.7,1.28],[2,.4],[2,-1.6]];     // timber frames
-  for(let u=U0+3;u<UE-.5;u+=4){
-    for(let pass=0;pass<2;pass++) for(let k=0;k<5;k++)
-      seg([u,fp[k][0],fp[k][1]],[u,fp[k+1][0],fp[k+1][1]],pass?.2:.3,pass?"#7a4b24":"#1a0f06");
-  }
-
-  tx.globalCompositeOperation="lighter";                                    // hanging lamps
-  for(let u=U0+4;u<UE;u+=8){
-    const c=L([u,-1,1.2]), dp=-c[2]; if(dp<.3) continue;
-    const sx=CW/2+CF*c[0]/dp, sy=CH/2-CF*c[1]/dp, r=Math.max(10,Math.min(220,CF*1.1/dp));
-    const g=tx.createRadialGradient(sx,sy,0,sx,sy,r);
-    g.addColorStop(0,"rgba(255,245,200,.95)"); g.addColorStop(.25,"rgba(255,220,140,.45)"); g.addColorStop(1,"rgba(255,200,100,0)");
-    tx.globalAlpha=1; tx.fillStyle=g; tx.beginPath(); tx.arc(sx,sy,r,0,7); tx.fill();
-  }
-  tx.globalCompositeOperation="source-over"; tx.globalAlpha=1;
-}
-
-/* ---------- objects placed in the tunnel (real positions, real sizes) ---------- */
 const items=[
-  {cls:"pbox", pos:[5.9,0,-.35], wm:1.6, px:150,
-   html:'<div class="fireWrap"><div class="fl">🔥</div><div class="fl2">🔥</div></div><div class="smk">💨</div><div class="ph">⚡ DANGER 440V</div><div class="sw">▮▮▮</div><div class="sw g">▮▮▮</div><div class="sw">▮▮▮</div>'},
-  {cls:"sign exit", pos:[-9,0,1.0],      wm:1.3, px:120, html:"EXIT ➜<br>வெளியே"},
-  {cls:"sign warn", pos:[2.5,-2.05,.2],   wm:1.0, px:100, html:"⚠ GAS<br>எரிவாயு"},
-  {cls:"ext",       pos:[-3.5,2.0,-.35],  wm:.5,  px:64,  html:"🧯", kind:"ext"},
-  {cls:"bucket",    pos:[-1.2,-1.3,-1.45],wm:.45, px:72,  html:"🪣", kind:"bucket"}
+  {cls:"fire",      video:"fire.mp4", fb:FLAME_HTML,                    off:-7,   el:1,   m:140},
+  {cls:"sign tag",  html:"440V PANEL",                                   off:-7,   el:-9,  m:100},
+  {cls:"sign exit", html:"EXIT ➜",                                       off:90,   el:8,   m:100},
+  {cls:"sign warn", html:"⚠ GAS HAZARD",                                 off:-90,  el:8,   m:110},
+  {cls:"ext",       img:"ext.png",    fb:extSVG("g1"),                   off:146,  el:1,   m:70, kind:"ext"},
+  {cls:"bucket",    img:"bucket.png", fb:BUCKET_SVG,                    off:-75,  el:-20, m:70, kind:"bucket"}
 ];
 items.forEach(it=>{
   const e=document.createElement("div");
-  e.className="item "+it.cls; e.innerHTML=it.html;
+  e.className="item "+it.cls;
+  if(it.video){
+    const v=document.createElement("video");
+    v.src=it.video; v.muted=true; v.loop=true; v.autoplay=true; v.setAttribute("playsinline","");
+    v.onerror=()=>{ e.innerHTML=it.fb; };
+    e.appendChild(v); it.v=v;
+  } else if(it.img){
+    const im=new Image(); im.src=it.img; im.onerror=()=>{ e.innerHTML=it.fb; }; e.appendChild(im);
+  } else e.innerHTML=it.html;
   if(it.kind) e.onclick=()=>tapItem(it);
   document.body.appendChild(e); it.el_=e;
 });
-for(let k=0;k<16;k++){
-  const d=document.createElement("span"); d.className="dust";
-  d.style.left=(Math.random()*100)+"%"; d.style.top=(40+Math.random()*60)+"%";
-  d.style.animationDelay=(Math.random()*7)+"s"; $("dustbox").appendChild(d);
-}
+(function(){   // extinguisher the worker holds
+  const h=$("held"), im=new Image(); im.src="ext.png"; im.onerror=()=>{ h.innerHTML=extSVG("g2"); }; h.appendChild(im);
+})();
 
 function loop(){
   requestAnimationFrame(loop);
   if((phase!=="search"&&phase!=="lesson")||!haveSensor) return;
-  CR=getR(); CW=innerWidth; CH=innerHeight; CF=focal();
-  if(az0===null) az0=forwardAz(CR);
-  drawTunnel();
+  const R=getR();
+  if(az0===null) az0=forwardAz(R);
+  drawPano(R);
 
+  const w=innerWidth,h=innerHeight,f=focal();
   let extVisible=false, extVec=null;
   items.forEach(it=>{
     if(it.gone){ it.el_.style.display="none"; return; }
-    const P=toCam(W(it.pos[0],it.pos[1],it.pos[2])), dp=-P[2];
-    if(it.kind==="ext") extVec=P;
-    if(dp>.3){
-      const sx=CW/2+CF*P[0]/dp, sy=CH/2-CF*P[1]/dp;
-      const s=Math.max(.6,Math.min(2.4,CF*it.wm/dp/it.px));
-      if(sx>-140&&sx<CW+140&&sy>-140&&sy<CH+140){
+    const az=rad(az0+it.off), el=rad(it.el);
+    const v=[Math.sin(az)*Math.cos(el), Math.cos(az)*Math.cos(el), Math.sin(el)];
+    const d=[0,1,2].map(c=>R[0][c]*v[0]+R[1][c]*v[1]+R[2][c]*v[2]);
+    const depth=-d[2];
+    if(it.kind==="ext") extVec=d;
+    if(depth>0.05){
+      const sx=w/2+f*d[0]/depth, sy=h/2-f*d[1]/depth;
+      if(sx>-it.m&&sx<w+it.m&&sy>-it.m&&sy<h+it.m){
         it.el_.style.display="block"; it.el_.style.left=sx+"px"; it.el_.style.top=sy+"px";
-        it.el_.style.transform="scale("+s.toFixed(3)+")";
         if(it.kind==="ext") extVisible=true;
         return;
       }
@@ -459,11 +456,11 @@ function loop(){
       $("arrow").style.display="block";
       $("arrow").style.transform="rotate("+(Math.atan2(extVec[0],extVec[1])*180/Math.PI)+"deg)";
     }
-    $("timer").textContent="⏱ "+Math.floor((Date.now()-t0)/1000)+T[lang].secs;
+    $("timer").textContent="Time: "+Math.floor((Date.now()-t0)/1000)+" s";
   }
 }
 
-/* ---------- game ---------- */
+/* ======== search game ======== */
 function toast(msg,color,ms){ const t=$("toast"); t.textContent=msg; t.style.background=color; t.style.display="block"; setTimeout(()=>t.style.display="none",ms||2200); }
 
 function tapItem(it){
@@ -472,34 +469,145 @@ function tapItem(it){
     foundTime=Math.floor((Date.now()-t0)/1000);
     phase="lesson";
     items.forEach(x=>{ if(x.kind) x.gone=true; });
-    $("arrow").style.display="none"; $("timer").style.display="none";
-    $("search").style.display="none"; $("lesson").style.display="block";
-    toast(T[lang].found+foundTime+T[lang].secs,"rgba(21,128,61,.95)");
-    try{ localStorage.setItem("searchTime",foundTime); }catch(e){}
+    hide("arrow"); hide("timer"); hide("search"); show("lesson");
+    toast("Correct! Extinguisher found in "+foundTime+" s","rgba(21,128,61,.95)");
     updateScene();
-  } else toast(T[lang].wrong,"rgba(127,29,29,.95)");
+  } else toast("Wrong! Never use water on an electrical fire!","rgba(127,29,29,.95)");
 }
+function openAR(){ const mv=$("hiddenAR"); if(mv.canActivateAR) mv.activateAR(); else alert("AR is not supported on this device"); }
 
-function openAR(){ const mv=$("hiddenAR"); if(mv.canActivateAR) mv.activateAR(); else alert("AR not supported on this device"); }
-
-async function startAll(l){
-  lang=l; render();
+async function startAll(){
+  workerName=$("wname").value.trim(); workerId=$("wid").value.trim();
+  if(workerName.length<2){ $("err").textContent="Please enter your name."; return; }
   try{
     if(typeof DeviceOrientationEvent!=="undefined" && typeof DeviceOrientationEvent.requestPermission==="function"){
       await DeviceOrientationEvent.requestPermission();
     }
   }catch(e){}
-  $("start").style.display="none";
-  sizeTun();
-  const ok=await ensureCam(); setCamUI(ok);
-  if(!ok) toast(T[lang].camFail,"rgba(127,29,29,.95)",5000);
-  az0=null; t0=Date.now(); phase="search";
+  hide("start"); sizeGL();
+  items.forEach(it=>{ if(it.v) it.v.play().catch(()=>{}); });
+  az0=null; t0=Date.now(); phase="search"; i=0;
   setTimeout(()=>{ if(!realSensor){ B=rad(90); G=0; haveSensor=true; } },1200);
   setTimeout(()=>{ items.forEach(x=>{ if(x.kind==="ext") x.el_.classList.add("hint"); }); },25000);
-  speakSearch();
 }
 
-sizeTun(); render(); loop();
+/* ======== quiz ======== */
+function startQuiz(){
+  phase="quiz"; qi=0; score=0;
+  hide("lesson"); hide("held"); $("spray").className=""; hide("result");
+  show("quiz"); renderQ();
+}
+function renderQ(){
+  const q=QUIZ[qi]; answered=false;
+  $("qmeta").textContent="Question "+(qi+1)+" of "+QUIZ.length;
+  $("qtext").textContent=q.q;
+  $("qopts").innerHTML="";
+  q.o.forEach((t,k)=>{
+    const b=document.createElement("button"); b.className="opt"; b.textContent=t; b.onclick=()=>pick(k,b);
+    $("qopts").appendChild(b);
+  });
+  hide("qexp"); hide("qnext");
+  $("qnext").textContent = (qi===QUIZ.length-1) ? "See result" : "Next";
+}
+function pick(k,btn){
+  if(answered) return; answered=true;
+  const q=QUIZ[qi], all=$("qopts").children;
+  if(k===q.a){ score++; btn.classList.add("good"); } else { btn.classList.add("bad"); all[q.a].classList.add("good"); }
+  $("qexp").textContent=(k===q.a?"Correct. ":"Not quite. ")+q.e;
+  show("qexp"); show("qnext");
+}
+function nextQ(){ qi++; if(qi>=QUIZ.length) showResult(); else renderQ(); }
+function showResult(){
+  hide("quiz"); show("result");
+  const pass=score>=PASS_MARK;
+  $("rtitle").textContent = pass ? "You passed!" : "Not passed yet";
+  $("rtext").textContent = "Your score: "+score+" out of "+QUIZ.length+". "+(pass
+    ? "Well done, "+workerName+". You can now generate your certificate."
+    : "You need at least "+PASS_MARK+" correct answers. Review the lesson or try again.");
+  $("rcert").style.display = pass ? "block" : "none";
+  $("rretry").style.display = pass ? "none" : "block";
+  $("rlesson").style.display = pass ? "none" : "block";
+}
+
+/* ======== signed QR certificate ======== */
+function b64e(str){ const bytes=new TextEncoder().encode(str); let s=""; bytes.forEach(b=>s+=String.fromCharCode(b));
+  return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""); }
+function b64d(b){ b=b.replace(/-/g,"+").replace(/_/g,"/"); while(b.length%4) b+="=";
+  const bin=atob(b); return new TextDecoder().decode(Uint8Array.from(bin,c=>c.charCodeAt(0))); }
+async function hmac(msg){
+  const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(SECRET),{name:"HMAC",hash:"SHA-256"},false,["sign"]);
+  const sig=await crypto.subtle.sign("HMAC",key,new TextEncoder().encode(msg));
+  return Array.from(new Uint8Array(sig)).map(b=>b.toString(16).padStart(2,"0")).join("").slice(0,24);
+}
+function fit(ctx,text,maxW,size,font){ do{ ctx.font=font.replace("{s}",size); size-=2; } while(ctx.measureText(text).width>maxW && size>14); }
+
+async function makeCert(){
+  hide("result"); show("cert");
+  const id="MSA-"+Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,5).toUpperCase();
+  const date=new Date().toISOString().slice(0,10);
+  const data={id:id,n:workerName,w:workerId,m:MODULE_NAME,s:score,t:QUIZ.length,d:date,f:foundTime};
+  const body=b64e(JSON.stringify(data)), sig=await hmac(body);
+  const url=location.origin+location.pathname+"?verify="+body+"."+sig;
+
+  const c=$("certCanvas"), x=c.getContext("2d"), W=c.width, H=c.height;
+  x.fillStyle="#fffaf0"; x.fillRect(0,0,W,H);
+  x.strokeStyle="#7c2d12"; x.lineWidth=10; x.strokeRect(20,20,W-40,H-40);
+  x.strokeStyle="#facc15"; x.lineWidth=3; x.strokeRect(36,36,W-72,H-72);
+  x.textAlign="center"; x.fillStyle="#7c2d12";
+  x.font="bold 46px Georgia, serif"; x.fillText("CERTIFICATE OF COMPLETION",W/2,120);
+  x.fillStyle="#44403c"; x.font="22px Arial"; x.fillText("Mine Safety Training Platform",W/2,158);
+  x.font="24px Georgia, serif"; x.fillText("This is to certify that",W/2,225);
+  x.fillStyle="#1c1917"; fit(x,workerName,800,56,"bold {s}px Georgia, serif"); x.fillText(workerName,W/2,295);
+  x.strokeStyle="#a8a29e"; x.lineWidth=1.5; x.beginPath(); x.moveTo(190,312); x.lineTo(W-190,312); x.stroke();
+  x.fillStyle="#44403c"; x.font="24px Georgia, serif"; x.fillText("has successfully completed the AR safety training and quiz on",W/2,362);
+  x.fillStyle="#7c2d12"; fit(x,MODULE_NAME,800,32,"bold {s}px Georgia, serif"); x.fillText(MODULE_NAME,W/2,408);
+  x.fillStyle="#1c1917"; x.font="24px Arial";
+  x.fillText("Quiz score: "+score+" / "+QUIZ.length+"   |   Date: "+date,W/2,458);
+
+  x.textAlign="left"; x.fillStyle="#57534e"; x.font="18px Arial";
+  x.fillText("Certificate ID: "+id,70,560);
+  if(workerId) x.fillText("Worker ID: "+workerId,70,590);
+  x.fillText("Signature: "+sig,70,620);
+  x.font="16px Arial"; x.fillText("Scan the QR code to verify this certificate.",70,650);
+
+  if(typeof qrcode==="function"){
+    const qr=qrcode(0,"M"); qr.addData(url); qr.make();
+    const n=qr.getModuleCount(), size=230, cell=Math.floor(size/n), qs=cell*n, qx=W-70-qs-16, qy=H-70-qs-16;
+    x.fillStyle="#fff"; x.fillRect(qx-16,qy-16,qs+32,qs+32);
+    x.fillStyle="#000";
+    for(let r=0;r<n;r++) for(let k=0;k<n;k++) if(qr.isDark(r,k)) x.fillRect(qx+k*cell,qy+r*cell,cell,cell);
+  } else {
+    x.fillStyle="#b91c1c"; x.font="16px Arial"; x.fillText("QR library not loaded. Check your internet and retry.",W-480,H-100);
+  }
+  $("dl").href=c.toDataURL("image/png");
+}
+
+/* ======== verify page (opened by scanning the QR) ======== */
+async function checkVerify(){
+  const p=new URLSearchParams(location.search).get("verify");
+  if(!p) return false;
+  hide("start"); show("verify");
+  let ok=false, d=null;
+  try{
+    const k=p.lastIndexOf("."), body=p.slice(0,k), sig=p.slice(k+1);
+    d=JSON.parse(b64d(body)); ok=(await hmac(body))===sig;
+  }catch(e){ ok=false; }
+  const esc=s=>String(s).replace(/[&<>"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[ch]));
+  $("vbox").innerHTML = ok
+    ? '<h2 style="color:#22c55e">✔ Certificate is VALID</h2><p>This certificate was issued by the Mine Safety Training platform and has not been altered.</p>'
+      +'<p><b>Name:</b> '+esc(d.n)+'<br>'+(d.w?'<b>Worker ID:</b> '+esc(d.w)+'<br>':'')
+      +'<b>Training:</b> '+esc(d.m)+'<br><b>Score:</b> '+esc(d.s)+' / '+esc(d.t)+'<br><b>Date:</b> '+esc(d.d)+'<br><b>Certificate ID:</b> '+esc(d.id)+'</p>'
+    : '<h2 style="color:#ef4444">✖ Certificate is NOT valid</h2><p>The data in this QR code does not match its signature. It may have been edited or forged.</p>';
+  return true;
+}
+
+/* ======== start ======== */
+(async function(){
+  if(await checkVerify()) return;
+  initGL();
+  loadImage(BG_FILES, makeTexture);
+  render(); loop();
+})();
 </script>
 </body>
 </html>
