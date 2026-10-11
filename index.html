@@ -11,8 +11,22 @@
   html,body { margin:0; height:100%; overflow:hidden; background:#000; font-family:Arial,sans-serif; color:#fff; }
   #cam { position:fixed; inset:0; width:100%; height:100%; object-fit:cover; }
   #tint { position:fixed; inset:0; pointer-events:none;
-    background: radial-gradient(ellipse at 50% 45%, rgba(0,0,0,0) 25%, rgba(0,0,0,.88) 100%),
-                linear-gradient(rgba(60,40,10,.35), rgba(60,40,10,.35)); }
+    background: radial-gradient(ellipse at 50% 45%, rgba(0,0,0,0) 25%, rgba(0,0,0,.85) 100%),
+                linear-gradient(rgba(70,45,10,.40), rgba(70,45,10,.40)); }
+
+  /* fixed mine atmosphere */
+  #atmo { position:fixed; inset:0; z-index:2; pointer-events:none; overflow:hidden; }
+  .wall-l,.wall-r { position:absolute; top:0; bottom:0; width:20%;
+    background:linear-gradient(90deg, rgba(30,20,12,.97), rgba(30,20,12,0)); }
+  .wall-l { left:0; } .wall-r { right:0; transform:scaleX(-1); }
+  #lamp { position:absolute; inset:0;
+    background:radial-gradient(circle at 50% 48%, rgba(255,230,150,.22) 0%, rgba(0,0,0,0) 45%);
+    animation:flick 3s infinite; }
+  @keyframes flick { 0%,100%{opacity:1} 45%{opacity:.8} 50%{opacity:.95} 70%{opacity:.85} }
+  .dust { position:absolute; width:4px; height:4px; border-radius:50%; background:rgba(255,235,190,.55);
+    animation:rise 7s linear infinite; }
+  @keyframes rise { from{transform:translateY(0);opacity:0} 20%{opacity:.8} to{transform:translateY(-70vh);opacity:0} }
+
   .stripe { position:fixed; left:0; right:0; height:14px; z-index:6;
     background:repeating-linear-gradient(45deg,var(--yellow) 0 14px,var(--dark) 14px 28px); }
   .top { top:0; } .bottom { bottom:0; }
@@ -27,15 +41,28 @@
 
   #cross { position:fixed; left:50%; top:50%; width:30px; height:30px; margin:-15px 0 0 -15px; z-index:3;
     border:2px solid rgba(250,204,21,.7); border-radius:50%; pointer-events:none; }
-  #arrow { position:fixed; left:50%; top:34%; width:70px; height:70px; margin-left:-35px; z-index:4;
+  #arrow { position:fixed; left:50%; top:34%; width:70px; height:70px; margin-left:-35px; z-index:5;
     font-size:56px; text-align:center; line-height:70px; color:var(--yellow);
     text-shadow:0 0 10px #000; pointer-events:none; }
   #timer { position:fixed; top:78px; right:10px; z-index:5; padding:5px 10px; border-radius:6px;
     background:rgba(28,25,23,.8); border-left:5px solid #ef4444; font-weight:bold; font-size:14px; }
 
-  .item { position:fixed; left:0; top:0; z-index:4; width:84px; height:84px; margin:-42px 0 0 -42px;
-    font-size:62px; text-align:center; line-height:84px; border:0; background:rgba(0,0,0,.35);
-    border-radius:50%; display:none; }
+  /* world objects (created by JS) */
+  .item { position:fixed; left:0; top:0; display:none; border:0; font-family:inherit; text-align:center; }
+  .frame { z-index:3; width:260px; height:340px; margin:-170px 0 0 -130px; pointer-events:none;
+    border:16px solid #6b4423; border-bottom:0; border-radius:6px 6px 0 0;
+    box-shadow:0 0 30px #000, inset 0 0 40px rgba(0,0,0,.8);
+    background:repeating-linear-gradient(0deg, rgba(0,0,0,.0) 0 18px, rgba(0,0,0,.18) 18px 20px); }
+  .obj { z-index:4; width:84px; height:84px; margin:-42px 0 0 -42px; font-size:62px; line-height:84px;
+    background:rgba(0,0,0,.35); border-radius:50%; color:#fff; }
+  .scene { z-index:4; width:120px; height:120px; margin:-60px 0 0 -60px; font-size:84px; line-height:120px;
+    background:none; pointer-events:none; text-shadow:0 0 22px #000; }
+  .scene.fire { animation:fireflick .35s infinite alternate; }
+  @keyframes fireflick { from{transform:scale(1)} to{transform:scale(1.18)} }
+  .sign { z-index:4; padding:8px 12px; border-radius:6px; font-size:20px; font-weight:bold; line-height:1.25;
+    margin:-22px 0 0 -60px; pointer-events:none; }
+  .sign.exit { background:#15803d; border:3px solid #fff; }
+  .sign.warn { background:#facc15; color:#1c1917; border:3px solid #1c1917; }
 
   .panel { position:fixed; z-index:5; left:0; right:0; bottom:14px; padding:12px 14px 10px;
     background:rgba(28,25,23,.9); border-top:3px solid var(--yellow); }
@@ -64,6 +91,11 @@
 <body>
   <video id="cam" autoplay playsinline muted></video>
   <div id="tint"></div>
+  <div id="atmo">
+    <div class="wall-l"></div><div class="wall-r"></div>
+    <div id="lamp"></div>
+    <div id="dustbox"></div>
+  </div>
   <div class="stripe top"></div>
 
   <header>
@@ -78,18 +110,14 @@
   <div id="timer"></div>
   <div id="cross"></div>
   <div id="arrow">⬆</div>
-  <button class="item" id="it0" onclick="tapItem(0)">🧯</button>
-  <button class="item" id="it1" onclick="tapItem(1)">🪣</button>
   <div id="toast"></div>
 
-  <!-- SEARCH PANEL -->
   <div class="panel" id="search">
     <h2 id="sTitle"></h2>
     <p id="sText"></p>
     <div class="row"><button class="voice" onclick="speakSearch()">🔊</button></div>
   </div>
 
-  <!-- LESSON PANEL -->
   <div class="panel" id="lesson">
     <div class="bar"><div id="fill"></div></div>
     <h2 id="stepTitle"></h2>
@@ -174,85 +202,99 @@ function speakSearch(){
 /* ---------- sensors + 3D math ---------- */
 let A=0,B=0,G=0,haveSensor=false,az0=null;
 const rad=d=>d*Math.PI/180;
-
 function mul(a,b){ const r=[[0,0,0],[0,0,0],[0,0,0]];
   for(let i=0;i<3;i++)for(let j=0;j<3;j++)for(let k=0;k<3;k++)r[i][j]+=a[i][k]*b[k][j]; return r; }
 function rotation(a,b,g){
   const ca=Math.cos(a),sa=Math.sin(a),cb=Math.cos(b),sb=Math.sin(b),cg=Math.cos(g),sg=Math.sin(g);
-  const Rz=[[ca,-sa,0],[sa,ca,0],[0,0,1]];
-  const Rx=[[1,0,0],[0,cb,-sb],[0,sb,cb]];
-  const Ry=[[cg,0,sg],[0,1,0],[-sg,0,cg]];
-  return mul(mul(Rz,Rx),Ry);
+  return mul(mul([[ca,-sa,0],[sa,ca,0],[0,0,1]],[[1,0,0],[0,cb,-sb],[0,sb,cb]]),[[cg,0,sg],[0,1,0],[-sg,0,cg]]);
 }
-function forwardAz(R){ // direction camera is facing, degrees from start frame
-  const x=-R[0][2], y=-R[1][2];
-  return Math.atan2(x,y)*180/Math.PI;
-}
+function forwardAz(R){ return Math.atan2(-R[0][2],-R[1][2])*180/Math.PI; }
 
 window.addEventListener("deviceorientation",e=>{
   if(e.alpha===null||e.alpha===undefined) return;
   A=rad(e.alpha); B=rad(e.beta); G=rad(e.gamma); haveSensor=true;
 });
 
-/* items: azimuth offset from the direction you face at start */
-const items=[
-  {id:"it0", off:140, el:-8, correct:true},
-  {id:"it1", off:-80, el:-12, correct:false}
-];
+/* ---------- the mine world (angles are relative to the way you face at START) ---------- */
+const items=[];
+// timber tunnel frames in a ring around you
+for(let a=0;a<360;a+=40){ items.push({cls:"frame", html:"", off:a, el:0, m:240}); }
+// emergency + signs
+items.push({cls:"scene fire", html:"🔥", off:0, el:-4, m:80});
+items.push({cls:"scene", html:"⚡", off:0, el:8, m:80});
+items.push({cls:"sign exit", html:"EXIT ➜<br>வெளியே", off:95, el:4, m:90});
+items.push({cls:"sign warn", html:"⚠ GAS<br>எரிவாயு", off:-150, el:4, m:90});
+// tappable objects
+items.push({cls:"obj", html:"🧯", off:140, el:-8, m:60, kind:"ext"});
+items.push({cls:"obj", html:"🪣", off:-80, el:-12, m:60, kind:"bucket"});
+
+items.forEach(it=>{
+  const e=document.createElement("div");
+  e.className="item "+it.cls; e.innerHTML=it.html;
+  if(it.kind) e.onclick=()=>tapItem(it);
+  document.body.appendChild(e); it.el_=e;
+});
+
+// floating dust
+for(let k=0;k<16;k++){
+  const d=document.createElement("span"); d.className="dust";
+  d.style.left=(Math.random()*100)+"%"; d.style.top=(40+Math.random()*60)+"%";
+  d.style.animationDelay=(Math.random()*7)+"s"; $("dustbox").appendChild(d);
+}
 
 function loop(){
   requestAnimationFrame(loop);
-  if(phase!=="search"||!haveSensor) return;
+  if((phase!=="search"&&phase!=="lesson")||!haveSensor) return;
   const R=rotation(A,B,G);
-  if(az0===null){ az0=forwardAz(R); }
+  if(az0===null) az0=forwardAz(R);
   const w=innerWidth,h=innerHeight;
   const f=(w/2)/Math.tan(rad(50)/2);
-  let anyVisible=false, targetVec=null;
+  let extVisible=false, extVec=null;
 
-  items.forEach((it,idx)=>{
+  items.forEach(it=>{
+    if(it.gone){ it.el_.style.display="none"; return; }
     const az=rad(az0+it.off), el=rad(it.el);
     const v=[Math.sin(az)*Math.cos(el), Math.cos(az)*Math.cos(el), Math.sin(el)];
-    // world -> device: R^T * v
     const d=[0,1,2].map(c=>R[0][c]*v[0]+R[1][c]*v[1]+R[2][c]*v[2]);
     const depth=-d[2];
-    const el_=$(it.id);
+    if(it.kind==="ext") extVec=d;
     if(depth>0.05){
       const sx=w/2+f*d[0]/depth, sy=h/2-f*d[1]/depth;
-      if(sx>-40&&sx<w+40&&sy>-40&&sy<h+40){
-        el_.style.display="block"; el_.style.left=sx+"px"; el_.style.top=sy+"px";
-        if(it.correct) anyVisible=true; 
-      } else el_.style.display="none";
-    } else el_.style.display="none";
-    if(it.correct) targetVec=d;
+      if(sx>-it.m&&sx<w+it.m&&sy>-it.m&&sy<h+it.m){
+        it.el_.style.display="block";
+        it.el_.style.left=sx+"px"; it.el_.style.top=sy+"px";
+        if(it.kind==="ext") extVisible=true;
+        return;
+      }
+    }
+    it.el_.style.display="none";
   });
 
-  // arrow to the extinguisher
-  if(anyVisible){ $("arrow").style.display="none"; }
-  else if(targetVec){
-    $("arrow").style.display="block";
-    const ang=Math.atan2(targetVec[0],targetVec[1])*180/Math.PI;
-    $("arrow").style.transform="rotate("+ang+"deg)";
+  if(phase==="search"){
+    if(extVisible) $("arrow").style.display="none";
+    else if(extVec){
+      $("arrow").style.display="block";
+      $("arrow").style.transform="rotate("+(Math.atan2(extVec[0],extVec[1])*180/Math.PI)+"deg)";
+    }
+    $("timer").textContent="⏱ "+Math.floor((Date.now()-t0)/1000)+T[lang].secs;
   }
-  $("timer").textContent="⏱ "+Math.floor((Date.now()-t0)/1000)+T[lang].secs;
 }
 
 /* ---------- game events ---------- */
-function toast(msg){ const t=$("toast"); t.textContent=msg; t.style.display="block"; setTimeout(()=>t.style.display="none",2200); }
+function toast(msg,color){ const t=$("toast"); t.textContent=msg; t.style.background=color; t.style.display="block"; setTimeout(()=>t.style.display="none",2200); }
 
-function tapItem(idx){
+function tapItem(it){
   if(phase!=="search") return;
-  if(items[idx].correct){
+  if(it.kind==="ext"){
     foundTime=Math.floor((Date.now()-t0)/1000);
     phase="lesson";
-    items.forEach(it=>$(it.id).style.display="none");
+    items.forEach(x=>{ if(x.kind) x.gone=true; });
     $("arrow").style.display="none"; $("timer").style.display="none";
     $("search").style.display="none"; $("lesson").style.display="block";
-    toast(T[lang].found+foundTime+T[lang].secs);
-    $("toast").style.background="rgba(21,128,61,.95)";
-    localStorage.setItem("searchTime",foundTime);
+    toast(T[lang].found+foundTime+T[lang].secs,"rgba(21,128,61,.95)");
+    try{ localStorage.setItem("searchTime",foundTime); }catch(e){}
   } else {
-    $("toast").style.background="rgba(127,29,29,.95)";
-    toast(T[lang].wrong);
+    toast(T[lang].wrong,"rgba(127,29,29,.95)");
   }
 }
 
