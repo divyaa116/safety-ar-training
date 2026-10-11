@@ -9,11 +9,14 @@
   :root { --yellow:#facc15; --dark:#1c1917; --orange:#ea580c; }
   * { box-sizing:border-box; }
   html,body { margin:0; height:100%; overflow:hidden; background:#000; font-family:Arial,sans-serif; color:#fff; touch-action:none; }
-  #pano { position:fixed; inset:0; width:100%; height:100%; background:#0c0a09; }
+  #pano { position:fixed; inset:0; width:100%; height:100%; background:#0c0a09; z-index:0; }
+  #cam { position:fixed; inset:0; width:100%; height:100%; object-fit:cover; display:none; z-index:0; }
+  #camtint { position:fixed; inset:0; z-index:1; pointer-events:none; display:none;
+    background:linear-gradient(rgba(70,45,10,.30), rgba(70,45,10,.30)); }
   #vig { position:fixed; inset:0; z-index:2; pointer-events:none;
-    background:radial-gradient(ellipse at 50% 45%, rgba(0,0,0,0) 40%, rgba(0,0,0,.65) 100%); }
+    background:radial-gradient(ellipse at 50% 45%, rgba(0,0,0,0) 40%, rgba(0,0,0,.6) 100%); }
   #lamp { position:fixed; inset:0; z-index:2; pointer-events:none;
-    background:radial-gradient(circle at 50% 48%, rgba(255,230,150,.14) 0%, rgba(0,0,0,0) 45%);
+    background:radial-gradient(circle at 50% 48%, rgba(255,230,150,.12) 0%, rgba(0,0,0,0) 45%);
     animation:flick 3s infinite; }
   @keyframes flick { 0%,100%{opacity:1} 45%{opacity:.75} 50%{opacity:.95} 70%{opacity:.8} }
   .dust { position:absolute; width:4px; height:4px; border-radius:50%; background:rgba(255,235,190,.5);
@@ -24,12 +27,12 @@
   .stripe { position:fixed; left:0; right:0; height:14px; z-index:6;
     background:repeating-linear-gradient(45deg,var(--yellow) 0 14px,var(--dark) 14px 28px); }
   .top { top:0; } .bottom { bottom:0; }
-  header { position:fixed; top:14px; left:0; right:0; z-index:5; padding:8px 12px;
+  header { position:fixed; top:14px; left:0; right:0; z-index:5; padding:8px 150px 8px 12px; min-height:50px;
     background:rgba(28,25,23,.8); border-bottom:2px solid var(--yellow); }
-  header h1 { margin:0; font-size:17px; color:var(--yellow); }
+  header h1 { margin:0; font-size:16px; color:var(--yellow); }
   header small { color:#e7e5e4; font-size:12px; }
-  .lang { position:absolute; right:10px; top:8px; }
-  .lang button { padding:5px 10px; margin-left:4px; border:2px solid var(--yellow); border-radius:6px;
+  .lang { position:absolute; right:8px; top:9px; }
+  .lang button { padding:5px 8px; margin-left:3px; border:2px solid var(--yellow); border-radius:6px;
     background:rgba(0,0,0,.5); color:var(--yellow); font-weight:bold; font-size:13px; }
 
   #cross { position:fixed; left:50%; top:50%; width:30px; height:30px; margin:-15px 0 0 -15px; z-index:3;
@@ -37,7 +40,7 @@
   #arrow { position:fixed; left:50%; top:34%; width:70px; height:70px; margin-left:-35px; z-index:5;
     font-size:56px; text-align:center; line-height:70px; color:var(--yellow);
     text-shadow:0 0 10px #000; pointer-events:none; }
-  #timer { position:fixed; top:78px; right:10px; z-index:5; padding:5px 10px; border-radius:6px;
+  #timer { position:fixed; top:80px; right:10px; z-index:5; padding:5px 10px; border-radius:6px;
     background:rgba(28,25,23,.85); border-left:5px solid #ef4444; font-weight:bold; font-size:14px; }
 
   .item { position:fixed; left:0; top:0; display:none; text-align:center; z-index:4; }
@@ -69,17 +72,21 @@
   #arbtn { margin-top:8px; width:100%; padding:10px; border:0; border-radius:6px; background:#16a34a; color:#fff; font-size:16px; font-weight:bold; }
   #hiddenAR { position:fixed; bottom:0; left:0; width:2px; height:2px; opacity:.01; z-index:1; }
 
-  #start { position:fixed; inset:0; z-index:10; background:rgba(0,0,0,.92);
+  #start { position:fixed; inset:0; z-index:10; background:rgba(0,0,0,.93);
     display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:22px; }
-  #start h2 { color:var(--yellow); }
-  #start button { margin-top:12px; padding:14px 26px; border:0; border-radius:8px;
-    background:var(--yellow); color:var(--dark); font-size:20px; font-weight:bold; }
+  #start h2 { color:var(--yellow); margin:0 0 4px; }
+  #start p { color:#d6d3d1; margin:6px 0; font-size:15px; }
+  #start button { margin-top:14px; width:80%; max-width:320px; padding:16px; border:0; border-radius:10px;
+    background:var(--yellow); color:var(--dark); font-size:22px; font-weight:bold; }
+  #start button.en { background:#fff; }
   #toast { position:fixed; left:12px; right:12px; top:46%; z-index:9; padding:12px; border-radius:8px; text-align:center;
     font-size:17px; font-weight:bold; display:none; }
 </style>
 </head>
 <body>
   <canvas id="pano"></canvas>
+  <video id="cam" autoplay playsinline muted></video>
+  <div id="camtint"></div>
   <div id="vig"></div><div id="lamp"></div><div id="dustbox"></div>
   <div class="stripe top"></div>
 
@@ -89,6 +96,7 @@
     <div class="lang">
       <button onclick="setLang('ta')">தமிழ்</button>
       <button onclick="setLang('en')">EN</button>
+      <button id="modeBtn" onclick="toggleBg()">📷</button>
     </div>
   </header>
 
@@ -121,23 +129,25 @@
   <div class="stripe bottom"></div>
 
   <div id="start">
-    <h2 id="startTitle"></h2>
-    <p id="startText"></p>
-    <button onclick="startAll()">▶ START</button>
+    <h2>சுரங்கப் பாதுகாப்பு பயிற்சி</h2>
+    <h2>Mine Safety Training</h2>
+    <p>மொழியைத் தேர்ந்தெடுக்கவும் / Choose your language</p>
+    <button onclick="startAll('ta')">தமிழ் - தொடங்கு</button>
+    <button class="en" onclick="startAll('en')">English - Start</button>
+    <p>இயக்க அனுமதியை ஏற்கவும் / Allow motion access</p>
   </div>
 
 <script>
+/* background image names tried in this order */
+const BG_FILES = ["mine_hd.jpg", "mining_bakground.jpg", "mine.jpg"];
+
 const T = {
   ta: { title:"சுரங்கப் பாதுகாப்பு பயிற்சி", sub:"தீ மற்றும் வெடிப்பு பாதுகாப்பு",
-        startTitle:"சுரங்கப் பயிற்சிக்குத் தயார்",
-        startText:"இயக்க அனுமதியை ஏற்கவும். பிறகு போனை சுற்றி திருப்பி சுரங்கத்தைப் பாருங்கள்.",
         sTitle:"🔥 அவசரம்! மின் பலகையில் தீ!",
         sText:"சுரங்கச் சுவரில் பொருத்தப்பட்டுள்ள சரியான தீ அணைப்பானைக் கண்டுபிடியுங்கள். அம்புக்குறி வழி காட்டும். கண்டதும் அதைத் தொடுங்கள்.",
         found:"சரி! அணைப்பான் கிடைத்தது. நேரம்: ", wrong:"தவறு! மின் தீக்கு தண்ணீர் பயன்படுத்தக் கூடாது!",
         arBtn:"📷 உங்கள் இடத்தில் அணைப்பானை வைத்துப் பாருங்கள்", secs:" வி" },
   en: { title:"Mine Safety Training", sub:"Fire & Explosion Response",
-        startTitle:"Ready for mine training",
-        startText:"Allow motion access. Then turn your phone around to look around the mine.",
         sTitle:"🔥 Emergency! Fire at the electrical panel!",
         sText:"Find the correct fire extinguisher mounted on the mine wall. The arrow shows the way. Tap it when you see it.",
         found:"Correct! Extinguisher found. Time: ", wrong:"Wrong! Never use water on an electrical fire!",
@@ -153,14 +163,13 @@ const steps = [
   { ta:{t:"S - இடம் வலமாக தெளியுங்கள்",x:"அணைப்பானை இடமிருந்து வலமாக நகர்த்தித் தெளியுங்கள்."}, en:{t:"S - Sweep",x:"Sweep from side to side across the base of the fire."} }
 ];
 
-let lang="ta", i=0, phase="idle", t0=0, foundTime=0;
+let lang="ta", i=0, phase="idle", t0=0, foundTime=0, bgMode="mine", camStarted=false;
 const $ = id => document.getElementById(id);
 
 /* ---------- text ---------- */
 function render(){
   const L=T[lang];
   $("title").textContent=L.title; $("sub").textContent=L.sub;
-  $("startTitle").textContent=L.startTitle; $("startText").textContent=L.startText;
   $("sTitle").textContent=L.sTitle; $("sText").textContent=L.sText;
   $("arbtn").textContent=L.arBtn;
   $("stepTitle").textContent=steps[i][lang].t;
@@ -200,7 +209,7 @@ window.addEventListener("deviceorientation",e=>{
   A=rad(e.alpha); B=rad(e.beta); G=rad(e.gamma); haveSensor=true; realSensor=true;
 });
 
-/* drag-to-look fallback (for laptop testing, or if the phone has no sensor) */
+/* drag-to-look fallback (laptop testing or phones without a sensor) */
 let dragging=false,lastX=0;
 addEventListener("pointerdown",e=>{ dragging=true; lastX=e.clientX; });
 addEventListener("pointerup",()=>dragging=false);
@@ -209,54 +218,119 @@ addEventListener("pointermove",e=>{
   A+=rad((e.clientX-lastX)*0.3); lastX=e.clientX;
 });
 
-/* ---------- panorama from your photo ---------- */
-const pano=$("pano"), ctx=pano.getContext("2d");
-let cw=0,ch=0,DX,DY,imgData,tex,TW=0,TH=0,texReady=false;
-const VSPAN=70; // degrees of height covered by the photo
+/* ---------- WebGL panorama (sharp, full resolution) ---------- */
+const pano=$("pano");
+const gl=pano.getContext("webgl",{antialias:false});
+let prog,U={},texReady=false,texMode=0,vspan=60;
 
-const img=new Image();
-img.onload=()=>{
-  const c=document.createElement("canvas"); c.width=img.width; c.height=img.height;
-  const cx=c.getContext("2d"); cx.drawImage(img,0,0);
-  tex=cx.getImageData(0,0,img.width,img.height).data; TW=img.width; TH=img.height; texReady=true;
-};
-img.onerror=()=>alert("mine.jpg not found. Upload your photo to the repo and name it mine.jpg");
-img.src="mine.jpg";
-
-function setupPano(){
-  const w=innerWidth,h=innerHeight;
-  cw=140; ch=Math.round(cw*h/w);
-  pano.width=cw; pano.height=ch;
-  const f=(w/2)/Math.tan(rad(50)/2);
-  DX=new Float32Array(cw*ch); DY=new Float32Array(cw*ch);
-  for(let py=0;py<ch;py++)for(let px=0;px<cw;px++){
-    const sx=(px+.5)/cw*w, sy=(py+.5)/ch*h, p=py*cw+px;
-    DX[p]=(sx-w/2)/f; DY[p]=-(sy-h/2)/f;
-  }
-  imgData=ctx.createImageData(cw,ch);
+function initGL(){
+  const vs="attribute vec2 p; varying vec2 v; void main(){ v=p; gl_Position=vec4(p,0.0,1.0); }";
+  const fs=`
+  #ifdef GL_FRAGMENT_PRECISION_HIGH
+  precision highp float;
+  #else
+  precision mediump float;
+  #endif
+  varying vec2 v;
+  uniform sampler2D tex;
+  uniform mat3 R;
+  uniform vec2 sc;
+  uniform float az0, mode, vspan;
+  void main(){
+    vec3 d = R * vec3(v.x*sc.x, v.y*sc.y, -1.0);
+    float az = atan(d.x, d.y)*57.29578;
+    float el = atan(d.z, length(d.xy))*57.29578;
+    vec2 uv; float shade=1.0;
+    if(mode>0.5){
+      uv.x = fract((az-az0)/360.0+0.5);
+      uv.y = clamp(0.5-el/180.0,0.0,1.0);
+    } else {
+      float t = mod(az-az0+45.0,360.0)/90.0;
+      float ti = floor(t); float fr = t-ti;
+      if(mod(ti,2.0)>=1.0) fr = 1.0-fr;
+      uv.x = fr;
+      float vy = 0.5-el/vspan;
+      if(vy<0.0){ vy=0.0; shade=0.55; } else if(vy>1.0){ vy=1.0; shade=0.45; }
+      uv.y = vy;
+    }
+    vec3 c = texture2D(tex,uv).rgb*shade;
+    float g = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898,78.233)))*43758.5453);
+    c += (g-0.5)*0.035;
+    gl_FragColor = vec4(c,1.0);
+  }`;
+  function sh(type,src){ const s=gl.createShader(type); gl.shaderSource(s,src); gl.compileShader(s); return s; }
+  prog=gl.createProgram();
+  gl.attachShader(prog,sh(gl.VERTEX_SHADER,vs)); gl.attachShader(prog,sh(gl.FRAGMENT_SHADER,fs));
+  gl.linkProgram(prog); gl.useProgram(prog);
+  const buf=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,buf);
+  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1, 1,-1, -1,1, 1,1]),gl.STATIC_DRAW);
+  const loc=gl.getAttribLocation(prog,"p"); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
+  ["tex","R","sc","az0","mode","vspan"].forEach(n=>U[n]=gl.getUniformLocation(prog,n));
 }
-addEventListener("resize",setupPano);
+
+function sizeGL(){
+  const s=Math.min(window.devicePixelRatio||1,1.5);
+  pano.width=Math.round(innerWidth*s); pano.height=Math.round(innerHeight*s);
+  gl.viewport(0,0,pano.width,pano.height);
+}
+addEventListener("resize",sizeGL);
+
+function loadImage(names,cb){
+  let k=0;
+  (function next(){
+    if(k>=names.length){ alert("Background image not found. Upload one of: "+names.join(", ")); return; }
+    const im=new Image(); im.onload=()=>cb(im); im.onerror=next; im.src=names[k++];
+  })();
+}
+
+function makeTexture(im){
+  const ratio=im.width/im.height;
+  texMode=(ratio>1.9&&ratio<2.1)?1:0;
+  const maxW=texMode?4096:2048;
+  const sc=Math.min(1,maxW/im.width);
+  const c=document.createElement("canvas"); c.width=Math.round(im.width*sc); c.height=Math.round(im.height*sc);
+  c.getContext("2d").drawImage(im,0,0,c.width,c.height);
+  vspan=90*im.height/im.width;
+  const t=gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,t);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,c);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+  texReady=true;
+}
 
 function drawPano(R){
-  if(!texReady||!imgData) return;
-  const data=imgData.data, n=cw*ch, D=180/Math.PI;
-  const r00=R[0][0],r01=R[0][1],r02=R[0][2],r10=R[1][0],r11=R[1][1],r12=R[1][2],r20=R[2][0],r21=R[2][1],r22=R[2][2];
-  for(let p=0;p<n;p++){
-    const dx=DX[p],dy=DY[p];
-    const wx=r00*dx+r01*dy-r02, wy=r10*dx+r11*dy-r12, wz=r20*dx+r21*dy-r22;
-    const az=Math.atan2(wx,wy)*D, el=Math.atan2(wz,Math.sqrt(wx*wx+wy*wy))*D;
-    const t=(((az-az0+45)%360)+360)%360/90;
-    const ti=Math.floor(t); let fr=t-ti; if(ti&1) fr=1-fr;
-    const tx=Math.min(TW-1,(fr*TW)|0);
-    let vy=0.5-el/VSPAN, shade=1;
-    if(vy<0){vy=0;shade=.55;} else if(vy>1){vy=1;shade=.45;}
-    const ty=(vy*(TH-1))|0, s=(ty*TW+tx)*4, o=p*4;
-    data[o]=tex[s]*shade; data[o+1]=tex[s+1]*shade; data[o+2]=tex[s+2]*shade; data[o+3]=255;
-  }
-  ctx.putImageData(imgData,0,0);
+  if(!texReady) return;
+  const w=innerWidth,h=innerHeight, tanH=Math.tan(rad(25));
+  const m=[R[0][0],R[1][0],R[2][0], R[0][1],R[1][1],R[2][1], R[0][2],R[1][2],R[2][2]];
+  gl.uniformMatrix3fv(U.R,false,new Float32Array(m));
+  gl.uniform2f(U.sc,tanH,tanH*h/w);
+  gl.uniform1f(U.az0,az0); gl.uniform1f(U.mode,texMode); gl.uniform1f(U.vspan,vspan);
+  gl.uniform1i(U.tex,0);
+  gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
 }
 
-/* ---------- fixed objects in the mine ---------- */
+/* ---------- background switch: mine photo  <->  live camera (AR) ---------- */
+async function toggleBg(){
+  if(bgMode==="mine"){
+    try{
+      if(!camStarted){
+        const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"},audio:false});
+        $("cam").srcObject=s; camStarted=true;
+      }
+      bgMode="cam";
+      $("pano").style.display="none"; $("cam").style.display="block"; $("camtint").style.display="block";
+      $("modeBtn").textContent="🏔";
+    }catch(e){ alert("Camera not available: "+e.message); }
+  } else {
+    bgMode="mine";
+    $("pano").style.display="block"; $("cam").style.display="none"; $("camtint").style.display="none";
+    $("modeBtn").textContent="📷";
+  }
+}
+
+/* ---------- fixed objects in the world ---------- */
 const items=[
   {cls:"scene fire", html:"🔥", off:0,    el:-4,  m:80},
   {cls:"scene",      html:"⚡", off:0,    el:6,   m:80},
@@ -282,7 +356,7 @@ function loop(){
   if((phase!=="search"&&phase!=="lesson")||!haveSensor) return;
   const R=rotation(A,B,G);
   if(az0===null) az0=forwardAz(R);
-  drawPano(R);
+  if(bgMode==="mine") drawPano(R);
 
   const w=innerWidth,h=innerHeight, f=(w/2)/Math.tan(rad(50)/2);
   let extVisible=false, extVec=null;
@@ -332,20 +406,23 @@ function tapItem(it){
 
 function openAR(){ const mv=$("hiddenAR"); if(mv.canActivateAR) mv.activateAR(); else alert("AR not supported on this device"); }
 
-async function startAll(){
+async function startAll(l){
+  lang=l; render();
   try{
     if(typeof DeviceOrientationEvent!=="undefined" && typeof DeviceOrientationEvent.requestPermission==="function"){
       await DeviceOrientationEvent.requestPermission();
     }
   }catch(e){}
   $("start").style.display="none";
-  setupPano();
+  sizeGL();
   az0=null; t0=Date.now(); phase="search";
-  setTimeout(()=>{ if(!realSensor){ B=rad(90); G=0; haveSensor=true; } },1200); // drag fallback
+  setTimeout(()=>{ if(!realSensor){ B=rad(90); G=0; haveSensor=true; } },1200);
   setTimeout(()=>{ items.forEach(x=>{ if(x.kind==="ext") x.el_.classList.add("hint"); }); },25000);
   speakSearch();
 }
 
+initGL();
+loadImage(BG_FILES, makeTexture);
 render(); loop();
 </script>
 </body>
