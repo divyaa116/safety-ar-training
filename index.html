@@ -8,15 +8,15 @@
 <style>
   :root { --yellow:#facc15; --dark:#1c1917; --orange:#ea580c; }
   * { box-sizing:border-box; }
-  html,body { margin:0; height:100%; overflow:hidden; background:#000; font-family:Arial,sans-serif; color:#fff; touch-action:none; }
-  #pano { position:fixed; inset:0; width:100%; height:100%; background:#0c0a09; z-index:0; display:none; }
+  html,body { margin:0; height:100%; overflow:hidden; background:#120e0b; font-family:Arial,sans-serif; color:#fff; touch-action:none; }
   #cam { position:fixed; inset:0; width:100%; height:100%; object-fit:cover; display:none; z-index:0; }
   #camtint { position:fixed; inset:0; z-index:1; pointer-events:none; display:none;
-    background:linear-gradient(rgba(70,45,10,.22), rgba(70,45,10,.22)); }
+    background:linear-gradient(rgba(70,45,10,.18), rgba(70,45,10,.18)); }
+  #tun { position:fixed; inset:0; width:100%; height:100%; z-index:1; pointer-events:none; }
   #vig { position:fixed; inset:0; z-index:2; pointer-events:none;
-    background:radial-gradient(ellipse at 50% 45%, rgba(0,0,0,0) 45%, rgba(0,0,0,.55) 100%); }
+    background:radial-gradient(ellipse at 50% 45%, rgba(0,0,0,0) 50%, rgba(0,0,0,.5) 100%); }
   #lamp { position:fixed; inset:0; z-index:2; pointer-events:none;
-    background:radial-gradient(circle at 50% 48%, rgba(255,230,150,.10) 0%, rgba(0,0,0,0) 45%);
+    background:radial-gradient(circle at 50% 48%, rgba(255,230,150,.08) 0%, rgba(0,0,0,0) 45%);
     animation:flick 3s infinite; }
   @keyframes flick { 0%,100%{opacity:1} 45%{opacity:.75} 50%{opacity:.95} 70%{opacity:.8} }
   .dust { position:absolute; width:4px; height:4px; border-radius:50%; background:rgba(255,235,190,.5);
@@ -27,12 +27,12 @@
   .stripe { position:fixed; left:0; right:0; height:14px; z-index:6;
     background:repeating-linear-gradient(45deg,var(--yellow) 0 14px,var(--dark) 14px 28px); }
   .top { top:0; } .bottom { bottom:0; }
-  header { position:fixed; top:14px; left:0; right:0; z-index:5; padding:8px 150px 8px 12px; min-height:50px;
+  header { position:fixed; top:14px; left:0; right:0; z-index:5; padding:8px 200px 8px 12px; min-height:50px;
     background:rgba(28,25,23,.8); border-bottom:2px solid var(--yellow); }
-  header h1 { margin:0; font-size:16px; color:var(--yellow); }
+  header h1 { margin:0; font-size:15px; color:var(--yellow); }
   header small { color:#e7e5e4; font-size:12px; }
-  .lang { position:absolute; right:8px; top:9px; }
-  .lang button { padding:5px 8px; margin-left:3px; border:2px solid var(--yellow); border-radius:6px;
+  .lang { position:absolute; right:6px; top:9px; }
+  .lang button { padding:5px 7px; margin-left:3px; border:2px solid var(--yellow); border-radius:6px;
     background:rgba(0,0,0,.5); color:var(--yellow); font-weight:bold; font-size:13px; }
 
   #cross { position:fixed; left:50%; top:50%; width:30px; height:30px; margin:-15px 0 0 -15px; z-index:3;
@@ -45,21 +45,29 @@
 
   .item { position:fixed; left:0; top:0; display:none; text-align:center; z-index:4; }
   .sign { padding:8px 12px; border-radius:6px; font-size:20px; font-weight:bold; line-height:1.25;
-    margin:-22px 0 0 -60px; pointer-events:none; box-shadow:0 4px 14px rgba(0,0,0,.6); }
+    margin:-24px 0 0 -60px; pointer-events:none; box-shadow:0 4px 14px rgba(0,0,0,.6); }
   .sign.exit { background:#15803d; border:3px solid #fff; }
   .sign.warn { background:#facc15; color:#1c1917; border:3px solid #1c1917; }
 
-  /* electrical panel with fire */
+  /* electrical panel + fire */
   .pbox { width:150px; height:200px; margin:-100px 0 0 -75px; border:5px solid #27272a; border-radius:8px;
-    background:linear-gradient(#71717a,#3f3f46); box-shadow:0 0 40px 10px rgba(234,88,12,.55); pointer-events:none; }
+    background:linear-gradient(#71717a,#3f3f46); box-shadow:0 0 40px 10px rgba(234,88,12,.55);
+    transition:box-shadow 3.5s ease-in; pointer-events:none; }
+  .pbox.out { box-shadow:0 0 0 0 rgba(0,0,0,0); }
   .pbox .ph { background:#facc15; color:#1c1917; font-weight:bold; font-size:15px; padding:4px 0; }
   .pbox .sw { font-size:24px; letter-spacing:6px; color:#ef4444; margin-top:12px; }
   .pbox .sw.g { color:#a3e635; }
-  .pbox .fl { position:absolute; left:50%; top:-70px; margin-left:-50px; font-size:100px; line-height:100px;
+  .fireWrap { position:absolute; left:0; top:0; width:100%; height:100%; pointer-events:none;
+    transition:opacity .6s, transform .6s; }
+  .pbox.out .fireWrap { opacity:0; transform:scale(.15) translateY(60px); transition:opacity 3.5s ease-in, transform 3.5s ease-in; }
+  .fl { position:absolute; left:50%; top:-70px; margin-left:-50px; font-size:100px; line-height:100px;
     animation:fireflick .35s infinite alternate; }
-  .pbox .fl2 { position:absolute; right:-26px; top:70px; font-size:56px; line-height:56px;
+  .fl2 { position:absolute; right:-26px; top:70px; font-size:56px; line-height:56px;
     animation:fireflick .28s infinite alternate; }
   @keyframes fireflick { from{transform:scale(1)} to{transform:scale(1.18)} }
+  .smk { position:absolute; left:50%; top:-50px; margin-left:-35px; font-size:70px; opacity:0;
+    transition:opacity 3s 1s; pointer-events:none; }
+  .pbox.out .smk { opacity:.85; }
 
   .ext { width:64px; height:64px; margin:-32px 0 0 -32px; font-size:34px; line-height:60px; border-radius:8px;
     background:rgba(250,204,21,.22); border:2px solid rgba(250,204,21,.55); }
@@ -105,9 +113,8 @@
   #toast { position:fixed; left:12px; right:12px; top:46%; z-index:9; padding:12px; border-radius:8px; text-align:center;
     font-size:17px; font-weight:bold; display:none; }
 
-  /* ---------- landscape layout ---------- */
   @media (orientation: landscape) {
-    header { padding:4px 150px 4px 12px; min-height:40px; }
+    header { padding:4px 200px 4px 12px; min-height:40px; }
     header small { display:none; }
     header h1 { font-size:15px; }
     .lang { top:5px; }
@@ -125,9 +132,9 @@
 </style>
 </head>
 <body>
-  <canvas id="pano"></canvas>
   <video id="cam" autoplay playsinline muted></video>
   <div id="camtint"></div>
+  <canvas id="tun"></canvas>
   <div id="vig"></div><div id="lamp"></div><div id="dustbox"></div>
   <div class="stripe top"></div>
 
@@ -137,7 +144,8 @@
     <div class="lang">
       <button onclick="setLang('ta')">தமிழ்</button>
       <button onclick="setLang('en')">EN</button>
-      <button id="modeBtn" onclick="toggleBg()">🏔</button>
+      <button onclick="retryCam()">📷</button>
+      <button id="tunBtn" onclick="toggleTun()">🕳</button>
     </div>
   </header>
 
@@ -183,19 +191,20 @@
   </div>
 
 <script>
-/* background image names (used only in mine-photo mode) */
-const BG_FILES = ["mine_hd.jpg", "mining_bakground.jpg", "mine.jpg"];
-
 const T = {
   ta: { title:"சுரங்கப் பாதுகாப்பு பயிற்சி", sub:"தீ மற்றும் வெடிப்பு பாதுகாப்பு",
         sTitle:"🔥 அவசரம்! மின் பலகையில் தீ!",
         sText:"போனைச் சுற்றித் திருப்பி சுவரில் உள்ள சரியான தீ அணைப்பானைக் கண்டுபிடியுங்கள். அம்புக்குறி வழி காட்டும். கண்டதும் அதைத் தொடுங்கள்.",
         found:"சரி! அணைப்பான் கிடைத்தது. நேரம்: ", wrong:"தவறு! மின் தீக்கு தண்ணீர் பயன்படுத்தக் கூடாது!",
+        out:"🔥 தீ அணைந்தது! நன்று!",
+        camFail:"கேமரா கிடைக்கவில்லை. கேமராவைப் பயன்படுத்தும் பிற செயலிகளை (அழைப்பு போன்றவை) மூடிவிட்டு 📷 தொடவும்.",
         arBtn:"📷 உங்கள் இடத்தில் அணைப்பானை வைத்துப் பாருங்கள்", secs:" வி" },
   en: { title:"Mine Safety Training", sub:"Fire & Explosion Response",
         sTitle:"🔥 Emergency! Fire at the electrical panel!",
         sText:"Turn your phone around to find the correct fire extinguisher on the wall. The arrow shows the way. Tap it when you see it.",
         found:"Correct! Extinguisher found. Time: ", wrong:"Wrong! Never use water on an electrical fire!",
+        out:"🔥 Fire is out! Well done!",
+        camFail:"Camera not available. Close other apps using the camera (like calls) and tap 📷.",
         arBtn:"📷 Place the extinguisher in your space (AR)", secs:" s" }
 };
 
@@ -208,10 +217,10 @@ const steps = [
   { ta:{t:"S - இடம் வலமாக தெளியுங்கள்",x:"அணைப்பானை இடமிருந்து வலமாக நகர்த்தித் தெளியுங்கள்."}, en:{t:"S - Sweep",x:"Sweep from side to side across the base of the fire."} }
 ];
 
-let lang="ta", i=0, phase="idle", t0=0, foundTime=0, bgMode="cam", camStarted=false;
+let lang="ta", i=0, phase="idle", t0=0, foundTime=0, camStarted=false, noCam=true, tunOn=true, fireT=null;
 const $ = id => document.getElementById(id);
 
-/* ---------- text ---------- */
+/* ---------- text + scene state ---------- */
 function render(){
   const L=T[lang];
   $("title").textContent=L.title; $("sub").textContent=L.sub;
@@ -221,14 +230,17 @@ function render(){
   $("stepText").textContent=steps[i][lang].x;
   $("count").textContent=(i+1)+" / "+steps.length;
   $("fill").style.width=((i+1)/steps.length*100)+"%";
-  updateHeld();
+  if(phase==="lesson") updateScene();
 }
-function updateHeld(){
-  const sp=$("spray");
-  if(phase==="lesson"){
-    $("held").style.display="block";
-    sp.className = (i>=3) ? (i===4 ? "on sweep" : "on") : "";
-  }
+function updateScene(){
+  $("held").style.display="block";
+  $("spray").className = (i>=3) ? (i===4 ? "on sweep" : "on") : "";
+  const p=items[0].el_;
+  clearTimeout(fireT);
+  if(i===4){
+    p.classList.add("out");
+    fireT=setTimeout(()=>{ if(i===4&&phase==="lesson") toast(T[lang].out,"rgba(21,128,61,.95)"); },3800);
+  } else p.classList.remove("out");
 }
 function setLang(l){ lang=l; render(); }
 function move(d){ i=Math.max(0,Math.min(steps.length-1,i+d)); speechSynthesis.cancel(); render(); }
@@ -246,7 +258,7 @@ function speakSearch(){
   else tts(L.sTitle+" "+L.sText,"en-IN");
 }
 
-/* ---------- sensors + math (works in portrait and landscape) ---------- */
+/* ---------- sensors + math (portrait and landscape) ---------- */
 let A=0,B=0,G=0,haveSensor=false,realSensor=false,az0=null;
 const rad=d=>d*Math.PI/180;
 function mul(a,b){ const r=[[0,0,0],[0,0,0],[0,0,0]];
@@ -262,8 +274,7 @@ function screenAngle(){
 }
 function getR(){
   const t=rad(screenAngle()), c=Math.cos(t), s=Math.sin(t);
-  const Rs=[[c,s,0],[-s,c,0],[0,0,1]];          // device frame -> screen frame
-  return mul(rotation(A,B,G),Rs);
+  return mul(rotation(A,B,G),[[c,s,0],[-s,c,0],[0,0,1]]);
 }
 function forwardAz(R){ return Math.atan2(-R[0][2],-R[1][2])*180/Math.PI; }
 function focal(){ return (Math.max(innerWidth,innerHeight)/2)/Math.tan(rad(32.5)); }
@@ -272,8 +283,6 @@ window.addEventListener("deviceorientation",e=>{
   if(e.alpha===null||e.alpha===undefined) return;
   A=rad(e.alpha); B=rad(e.beta); G=rad(e.gamma); haveSensor=true; realSensor=true;
 });
-
-/* drag-to-look fallback */
 let dragging=false,lastX=0;
 addEventListener("pointerdown",e=>{ dragging=true; lastX=e.clientX; });
 addEventListener("pointerup",()=>dragging=false);
@@ -282,107 +291,11 @@ addEventListener("pointermove",e=>{
   A+=rad((e.clientX-lastX)*0.3); lastX=e.clientX;
 });
 
-/* ---------- WebGL panorama (mine-photo mode) ---------- */
-const pano=$("pano");
-const gl=pano.getContext("webgl",{antialias:false});
-let prog,U={},texReady=false,texMode=0,vspan=60;
-
-function initGL(){
-  const vs="attribute vec2 p; varying vec2 v; void main(){ v=p; gl_Position=vec4(p,0.0,1.0); }";
-  const fs=`
-  #ifdef GL_FRAGMENT_PRECISION_HIGH
-  precision highp float;
-  #else
-  precision mediump float;
-  #endif
-  varying vec2 v;
-  uniform sampler2D tex;
-  uniform mat3 R;
-  uniform vec2 sc;
-  uniform float az0, mode, vspan;
-  void main(){
-    vec3 d = R * vec3(v.x*sc.x, v.y*sc.y, -1.0);
-    float az = atan(d.x, d.y)*57.29578;
-    float el = atan(d.z, length(d.xy))*57.29578;
-    vec2 uv; float shade=1.0;
-    if(mode>0.5){
-      uv.x = fract((az-az0)/360.0+0.5);
-      uv.y = clamp(0.5-el/180.0,0.0,1.0);
-    } else {
-      float t = mod(az-az0+45.0,360.0)/90.0;
-      float ti = floor(t); float fr = t-ti;
-      if(mod(ti,2.0)>=1.0) fr = 1.0-fr;
-      uv.x = fr;
-      float vy = 0.5-el/vspan;
-      if(vy<0.0){ vy=0.0; shade=0.55; } else if(vy>1.0){ vy=1.0; shade=0.45; }
-      uv.y = vy;
-    }
-    vec3 c = texture2D(tex,uv).rgb*shade;
-    float g = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898,78.233)))*43758.5453);
-    c += (g-0.5)*0.035;
-    gl_FragColor = vec4(c,1.0);
-  }`;
-  function sh(type,src){ const s=gl.createShader(type); gl.shaderSource(s,src); gl.compileShader(s); return s; }
-  prog=gl.createProgram();
-  gl.attachShader(prog,sh(gl.VERTEX_SHADER,vs)); gl.attachShader(prog,sh(gl.FRAGMENT_SHADER,fs));
-  gl.linkProgram(prog); gl.useProgram(prog);
-  const buf=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,buf);
-  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1, 1,-1, -1,1, 1,1]),gl.STATIC_DRAW);
-  const loc=gl.getAttribLocation(prog,"p"); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
-  ["tex","R","sc","az0","mode","vspan"].forEach(n=>U[n]=gl.getUniformLocation(prog,n));
-}
-function sizeGL(){
-  const s=Math.min(window.devicePixelRatio||1,1.5);
-  pano.width=Math.round(innerWidth*s); pano.height=Math.round(innerHeight*s);
-  gl.viewport(0,0,pano.width,pano.height);
-}
-addEventListener("resize",sizeGL);
-addEventListener("orientationchange",()=>setTimeout(sizeGL,300));
-
-function loadImage(names,cb){
-  let k=0;
-  (function next(){
-    if(k>=names.length){ return; }
-    const im=new Image(); im.onload=()=>cb(im); im.onerror=next; im.src=names[k++];
-  })();
-}
-function makeTexture(im){
-  const ratio=im.width/im.height;
-  texMode=(ratio>1.9&&ratio<2.1)?1:0;
-  const maxW=texMode?4096:2048;
-  const sc=Math.min(1,maxW/im.width);
-  const c=document.createElement("canvas"); c.width=Math.round(im.width*sc); c.height=Math.round(im.height*sc);
-  c.getContext("2d").drawImage(im,0,0,c.width,c.height);
-  vspan=90*im.height/im.width;
-  const t=gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D,t);
-  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,c);
-  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
-  texReady=true;
-}
-function drawPano(R){
-  if(!texReady) return;
-  const w=innerWidth,h=innerHeight,f=focal();
-  const m=[R[0][0],R[1][0],R[2][0], R[0][1],R[1][1],R[2][1], R[0][2],R[1][2],R[2][2]];
-  gl.uniformMatrix3fv(U.R,false,new Float32Array(m));
-  gl.uniform2f(U.sc,(w/2)/f,(h/2)/f);
-  gl.uniform1f(U.az0,az0); gl.uniform1f(U.mode,texMode); gl.uniform1f(U.vspan,vspan);
-  gl.uniform1i(U.tex,0);
-  gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
-}
-
-/* ---------- background: live camera (default)  <->  mine photo ---------- */
-function setBg(mode){
-  bgMode=mode;
-  if(mode==="cam"){
-    $("pano").style.display="none"; $("cam").style.display="block"; $("camtint").style.display="block";
-    $("modeBtn").textContent="🏔";
-  } else {
-    $("pano").style.display="block"; $("cam").style.display="none"; $("camtint").style.display="none";
-    $("modeBtn").textContent="📷";
-  }
+/* ---------- camera ---------- */
+function setCamUI(on){
+  noCam=!on;
+  $("cam").style.display=on?"block":"none";
+  $("camtint").style.display=on?"block":"none";
 }
 async function ensureCam(){
   if(camStarted) return true;
@@ -391,19 +304,117 @@ async function ensureCam(){
     $("cam").srcObject=s; camStarted=true; return true;
   }catch(e){ return false; }
 }
-async function toggleBg(){
-  if(bgMode==="cam"){ setBg("mine"); }
-  else { if(await ensureCam()) setBg("cam"); else alert("Camera not available"); }
+async function retryCam(){
+  const ok=await ensureCam(); setCamUI(ok);
+  if(!ok) toast(T[lang].camFail,"rgba(127,29,29,.95)",5000);
+}
+function toggleTun(){ tunOn=!tunOn; $("tunBtn").style.opacity=tunOn?1:.45; }
+
+/* ---------- 3D mine tunnel drawn over the camera ---------- */
+const tc=$("tun"), tx=tc.getContext("2d");
+let CW=0,CH=0,CF=1,CR=null;
+function sizeTun(){
+  const s=Math.min(window.devicePixelRatio||1,1.5);
+  tc.width=Math.round(innerWidth*s); tc.height=Math.round(innerHeight*s);
+  tx.setTransform(s,0,0,s,0,0);
+}
+addEventListener("resize",sizeTun);
+addEventListener("orientationchange",()=>setTimeout(sizeTun,300));
+
+/* local tunnel coords: u = along tunnel (0 = you, + = ahead), v = right, z = up */
+function W(u,v,z){ const a=rad(az0); return [u*Math.sin(a)+v*Math.cos(a), u*Math.cos(a)-v*Math.sin(a), z]; }
+function toCam(P){ return [0,1,2].map(c=>CR[0][c]*P[0]+CR[1][c]*P[1]+CR[2][c]*P[2]); }
+function L(p){ return toCam(W(p[0],p[1],p[2])); }
+
+function clipNear(pts){
+  const out=[], N=.15;
+  for(let i=0;i<pts.length;i++){
+    const a=pts[i], b=pts[(i+1)%pts.length];
+    const da=-a[2]-N, db=-b[2]-N;
+    if(da>=0) out.push(a);
+    if((da>=0)!==(db>=0)){ const t=da/(da-db); out.push([a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t]); }
+  }
+  return out;
+}
+function quad(pts,color,alpha){
+  const cam=clipNear(pts.map(L)); if(cam.length<3) return;
+  let dsum=0;
+  tx.beginPath();
+  cam.forEach((c,k)=>{
+    const dp=-c[2]; dsum+=dp;
+    const sx=CW/2+CF*c[0]/dp, sy=CH/2-CF*c[1]/dp;
+    if(k) tx.lineTo(sx,sy); else tx.moveTo(sx,sy);
+  });
+  tx.closePath();
+  tx.globalAlpha=alpha; tx.fillStyle=color; tx.fill();
+  tx.globalAlpha=Math.min(.6,(dsum/cam.length)/55)*alpha; tx.fillStyle="#000"; tx.fill();
+}
+function seg(a,b,wm,col){
+  let A_=L(a), B_=L(b); const N=.15, da=-A_[2]-N, db=-B_[2]-N;
+  if(da<0&&db<0) return;
+  if(da<0||db<0){
+    const t=da/(da-db);
+    const P=[A_[0]+(B_[0]-A_[0])*t, A_[1]+(B_[1]-A_[1])*t, A_[2]+(B_[2]-A_[2])*t];
+    if(da<0) A_=P; else B_=P;
+  }
+  const d1=-A_[2], d2=-B_[2];
+  tx.beginPath();
+  tx.moveTo(CW/2+CF*A_[0]/d1, CH/2-CF*A_[1]/d1);
+  tx.lineTo(CW/2+CF*B_[0]/d2, CH/2-CF*B_[1]/d2);
+  tx.lineWidth=Math.max(1.2,CF*wm/((d1+d2)/2));
+  tx.strokeStyle=col; tx.globalAlpha=.95; tx.stroke();
 }
 
-/* ---------- objects fixed in the world ---------- */
+const RING=[[-2.2,-1.6],[-2.3,-0.6],[-2.1,0.4],[-1.6,1.2],[-0.7,1.5],[0.7,1.5],[1.6,1.2],[2.1,0.4],[2.3,-0.6],[2.2,-1.6]];
+const U0=-45, STEP=3, NU=17, UE=U0+NU*STEP;   // UE = 6 : rock face at the end
+const hs=(a,b)=>{ const x=Math.sin(a*127.1+b*311.7)*43758.5453; return x-Math.floor(x); };
+function V(iu,k){
+  const r=RING[k], fl=(k===0||k===9)?.2:1;
+  return [U0+iu*STEP, r[0]+(hs(iu,k)-.5)*.28*fl, r[1]+(hs(iu+9,k)-.5)*.28*fl];
+}
+
+function drawTunnel(){
+  tx.clearRect(0,0,CW,CH);
+  if(!tunOn) return;
+  const al=noCam?1:.6;
+  tx.lineCap="butt";
+  for(let iu=0;iu<NU;iu++) for(let k=0;k<10;k++){
+    const k2=(k+1)%10;
+    const s=26+hs(iu*3+k,k*7+1)*40+(k===9?18:0)+((k>=3&&k<=6)?-6:0);
+    quad([V(iu,k),V(iu+1,k),V(iu+1,k2),V(iu,k2)],"rgb("+(s*1.15|0)+","+(s|0)+","+(s*.85|0)+")",al);
+  }
+  quad(Array.from({length:10},(_,k)=>V(NU,k)),"rgb(18,14,11)",al);
+
+  seg([U0,1.8,.9],[UE,1.8,.9],.3,"#6b7280");          // ventilation pipe
+  seg([U0,-1.85,1],[UE,-1.85,1],.05,"#0b0b0b");        // cable
+  [-.45,.45].forEach(v=>seg([U0,v,-1.55],[UE,v,-1.55],.07,"#a1a1aa"));   // rails
+  for(let u=U0;u<UE;u+=1) seg([u,-.85,-1.58],[u,.85,-1.58],.14,"#5b3a1d"); // sleepers
+
+  const fp=[[-2,-1.6],[-2,.4],[-1.7,1.28],[1.7,1.28],[2,.4],[2,-1.6]];     // timber frames
+  for(let u=U0+3;u<UE-.5;u+=4){
+    for(let pass=0;pass<2;pass++) for(let k=0;k<5;k++)
+      seg([u,fp[k][0],fp[k][1]],[u,fp[k+1][0],fp[k+1][1]],pass?.2:.3,pass?"#7a4b24":"#1a0f06");
+  }
+
+  tx.globalCompositeOperation="lighter";                                    // hanging lamps
+  for(let u=U0+4;u<UE;u+=8){
+    const c=L([u,-1,1.2]), dp=-c[2]; if(dp<.3) continue;
+    const sx=CW/2+CF*c[0]/dp, sy=CH/2-CF*c[1]/dp, r=Math.max(10,Math.min(220,CF*1.1/dp));
+    const g=tx.createRadialGradient(sx,sy,0,sx,sy,r);
+    g.addColorStop(0,"rgba(255,245,200,.95)"); g.addColorStop(.25,"rgba(255,220,140,.45)"); g.addColorStop(1,"rgba(255,200,100,0)");
+    tx.globalAlpha=1; tx.fillStyle=g; tx.beginPath(); tx.arc(sx,sy,r,0,7); tx.fill();
+  }
+  tx.globalCompositeOperation="source-over"; tx.globalAlpha=1;
+}
+
+/* ---------- objects placed in the tunnel (real positions, real sizes) ---------- */
 const items=[
-  {cls:"pbox", m:130, off:0, el:2,
-   html:'<div class="fl">🔥</div><div class="fl2">🔥</div><div class="ph">⚡ DANGER 440V</div><div class="sw">▮▮▮</div><div class="sw g">▮▮▮</div><div class="sw">▮▮▮</div>'},
-  {cls:"sign exit",  html:"EXIT ➜<br>வெளியே", off:95,   el:14, m:90},
-  {cls:"sign warn",  html:"⚠ GAS<br>எரிவாயு", off:-150, el:14, m:90},
-  {cls:"ext",        html:"🧯", off:140, el:-6,  m:60, kind:"ext"},
-  {cls:"bucket",     html:"🪣", off:-80, el:-30, m:70, kind:"bucket"}
+  {cls:"pbox", pos:[5.9,0,-.35], wm:1.6, px:150,
+   html:'<div class="fireWrap"><div class="fl">🔥</div><div class="fl2">🔥</div></div><div class="smk">💨</div><div class="ph">⚡ DANGER 440V</div><div class="sw">▮▮▮</div><div class="sw g">▮▮▮</div><div class="sw">▮▮▮</div>'},
+  {cls:"sign exit", pos:[-9,0,1.0],      wm:1.3, px:120, html:"EXIT ➜<br>வெளியே"},
+  {cls:"sign warn", pos:[2.5,-2.05,.2],   wm:1.0, px:100, html:"⚠ GAS<br>எரிவாயு"},
+  {cls:"ext",       pos:[-3.5,2.0,-.35],  wm:.5,  px:64,  html:"🧯", kind:"ext"},
+  {cls:"bucket",    pos:[-1.2,-1.3,-1.45],wm:.45, px:72,  html:"🪣", kind:"bucket"}
 ];
 items.forEach(it=>{
   const e=document.createElement("div");
@@ -420,23 +431,21 @@ for(let k=0;k<16;k++){
 function loop(){
   requestAnimationFrame(loop);
   if((phase!=="search"&&phase!=="lesson")||!haveSensor) return;
-  const R=getR();
-  if(az0===null) az0=forwardAz(R);
-  if(bgMode==="mine") drawPano(R);
+  CR=getR(); CW=innerWidth; CH=innerHeight; CF=focal();
+  if(az0===null) az0=forwardAz(CR);
+  drawTunnel();
 
-  const w=innerWidth,h=innerHeight,f=focal();
   let extVisible=false, extVec=null;
   items.forEach(it=>{
     if(it.gone){ it.el_.style.display="none"; return; }
-    const az=rad(az0+it.off), el=rad(it.el);
-    const v=[Math.sin(az)*Math.cos(el), Math.cos(az)*Math.cos(el), Math.sin(el)];
-    const d=[0,1,2].map(c=>R[0][c]*v[0]+R[1][c]*v[1]+R[2][c]*v[2]);
-    const depth=-d[2];
-    if(it.kind==="ext") extVec=d;
-    if(depth>0.05){
-      const sx=w/2+f*d[0]/depth, sy=h/2-f*d[1]/depth;
-      if(sx>-it.m&&sx<w+it.m&&sy>-it.m&&sy<h+it.m){
+    const P=toCam(W(it.pos[0],it.pos[1],it.pos[2])), dp=-P[2];
+    if(it.kind==="ext") extVec=P;
+    if(dp>.3){
+      const sx=CW/2+CF*P[0]/dp, sy=CH/2-CF*P[1]/dp;
+      const s=Math.max(.6,Math.min(2.4,CF*it.wm/dp/it.px));
+      if(sx>-140&&sx<CW+140&&sy>-140&&sy<CH+140){
         it.el_.style.display="block"; it.el_.style.left=sx+"px"; it.el_.style.top=sy+"px";
+        it.el_.style.transform="scale("+s.toFixed(3)+")";
         if(it.kind==="ext") extVisible=true;
         return;
       }
@@ -455,19 +464,19 @@ function loop(){
 }
 
 /* ---------- game ---------- */
-function toast(msg,color){ const t=$("toast"); t.textContent=msg; t.style.background=color; t.style.display="block"; setTimeout(()=>t.style.display="none",2200); }
+function toast(msg,color,ms){ const t=$("toast"); t.textContent=msg; t.style.background=color; t.style.display="block"; setTimeout(()=>t.style.display="none",ms||2200); }
 
 function tapItem(it){
   if(phase!=="search") return;
   if(it.kind==="ext"){
     foundTime=Math.floor((Date.now()-t0)/1000);
     phase="lesson";
-    items.forEach(x=>{ if(x.kind) x.gone=true; });   // picked up: now shown in the worker's hands
+    items.forEach(x=>{ if(x.kind) x.gone=true; });
     $("arrow").style.display="none"; $("timer").style.display="none";
     $("search").style.display="none"; $("lesson").style.display="block";
     toast(T[lang].found+foundTime+T[lang].secs,"rgba(21,128,61,.95)");
     try{ localStorage.setItem("searchTime",foundTime); }catch(e){}
-    updateHeld();
+    updateScene();
   } else toast(T[lang].wrong,"rgba(127,29,29,.95)");
 }
 
@@ -481,18 +490,16 @@ async function startAll(l){
     }
   }catch(e){}
   $("start").style.display="none";
-  sizeGL();
-  const ok=await ensureCam();
-  setBg(ok?"cam":"mine");
+  sizeTun();
+  const ok=await ensureCam(); setCamUI(ok);
+  if(!ok) toast(T[lang].camFail,"rgba(127,29,29,.95)",5000);
   az0=null; t0=Date.now(); phase="search";
   setTimeout(()=>{ if(!realSensor){ B=rad(90); G=0; haveSensor=true; } },1200);
   setTimeout(()=>{ items.forEach(x=>{ if(x.kind==="ext") x.el_.classList.add("hint"); }); },25000);
   speakSearch();
 }
 
-initGL();
-loadImage(BG_FILES, makeTexture);
-render(); loop();
+sizeTun(); render(); loop();
 </script>
 </body>
 </html>
