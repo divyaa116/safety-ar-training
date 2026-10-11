@@ -6,99 +6,274 @@
 <title>Mine Safety Training AR</title>
 <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
 <style>
-  :root { --yellow: #facc15; --dark: #1c1917; --rock: #292524; --orange: #ea580c; }
-  * { box-sizing: border-box; }
-  body {
-    font-family: Arial, sans-serif; margin: 0; padding: 0; color: #f5f5f4;
-    background:
-      linear-gradient(rgba(28,25,23,0.88), rgba(28,25,23,0.95)),
-      repeating-linear-gradient(0deg, #44403c 0px, #44403c 18px, #292524 18px, #292524 36px);
-    min-height: 100vh;
-  }
-  .stripe {
-    height: 12px;
-    background: repeating-linear-gradient(45deg, var(--yellow) 0 14px, var(--dark) 14px 28px);
-  }
-  header { background: var(--dark); padding: 12px 14px; display: flex; align-items: center; gap: 10px; border-bottom: 3px solid var(--yellow); }
-  header .icon { font-size: 34px; }
-  header h1 { font-size: 18px; margin: 0; color: var(--yellow); letter-spacing: 0.5px; }
-  header small { color: #d6d3d1; font-size: 12px; }
-  main { padding: 12px 14px 24px; }
+  :root { --yellow:#facc15; --dark:#1c1917; --orange:#ea580c; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; overflow:hidden; background:#000; font-family:Arial,sans-serif; color:#fff; }
+  #cam { position:fixed; inset:0; width:100%; height:100%; object-fit:cover; }
+  #tint { position:fixed; inset:0; pointer-events:none;
+    background: radial-gradient(ellipse at 50% 45%, rgba(0,0,0,0) 25%, rgba(0,0,0,.88) 100%),
+                linear-gradient(rgba(60,40,10,.35), rgba(60,40,10,.35)); }
+  .stripe { position:fixed; left:0; right:0; height:14px; z-index:6;
+    background:repeating-linear-gradient(45deg,var(--yellow) 0 14px,var(--dark) 14px 28px); }
+  .top { top:0; } .bottom { bottom:0; }
 
-  .lang button {
-    padding: 8px 16px; margin-right: 8px; border: 2px solid var(--yellow);
-    border-radius: 6px; background: transparent; color: var(--yellow); font-size: 15px; font-weight: bold;
-  }
-  .lang button:active { background: var(--yellow); color: var(--dark); }
+  header { position:fixed; top:14px; left:0; right:0; z-index:5; padding:8px 12px;
+    background:rgba(28,25,23,.78); border-bottom:2px solid var(--yellow); }
+  header h1 { margin:0; font-size:17px; color:var(--yellow); }
+  header small { color:#e7e5e4; font-size:12px; }
+  .lang { position:absolute; right:10px; top:8px; }
+  .lang button { padding:5px 10px; margin-left:4px; border:2px solid var(--yellow); border-radius:6px;
+    background:rgba(0,0,0,.5); color:var(--yellow); font-weight:bold; font-size:13px; }
 
-  .depth { margin-top: 12px; font-size: 13px; color: #d6d3d1; }
-  .depth .track { height: 10px; background: #44403c; border-radius: 5px; margin-top: 4px; overflow: hidden; }
-  .depth .fill { height: 100%; width: 0; background: linear-gradient(90deg, var(--orange), var(--yellow)); transition: width 0.3s; }
+  #cross { position:fixed; left:50%; top:50%; width:30px; height:30px; margin:-15px 0 0 -15px; z-index:3;
+    border:2px solid rgba(250,204,21,.7); border-radius:50%; pointer-events:none; }
+  #arrow { position:fixed; left:50%; top:34%; width:70px; height:70px; margin-left:-35px; z-index:4;
+    font-size:56px; text-align:center; line-height:70px; color:var(--yellow);
+    text-shadow:0 0 10px #000; pointer-events:none; }
+  #timer { position:fixed; top:78px; right:10px; z-index:5; padding:5px 10px; border-radius:6px;
+    background:rgba(28,25,23,.8); border-left:5px solid #ef4444; font-weight:bold; font-size:14px; }
 
-  model-viewer {
-    width: 100%; height: 40vh; margin-top: 12px; border-radius: 10px;
-    border: 3px solid var(--yellow);
-    background: radial-gradient(circle at 50% 40%, #57534e, #1c1917);
-  }
+  .item { position:fixed; left:0; top:0; z-index:4; width:84px; height:84px; margin:-42px 0 0 -42px;
+    font-size:62px; text-align:center; line-height:84px; border:0; background:rgba(0,0,0,.35);
+    border-radius:50%; display:none; }
 
-  .card {
-    margin-top: 12px; padding: 14px; border-radius: 10px; background: var(--rock);
-    border-left: 8px solid var(--yellow);
-  }
-  .card h2 { margin: 0 0 8px; font-size: 19px; color: var(--yellow); }
-  .card p { font-size: 17px; line-height: 1.55; margin: 0 0 12px; }
-  .card button {
-    padding: 10px 16px; border: 0; border-radius: 6px; background: var(--orange);
-    color: #fff; font-size: 16px; font-weight: bold;
-  }
+  .panel { position:fixed; z-index:5; left:0; right:0; bottom:14px; padding:12px 14px 10px;
+    background:rgba(28,25,23,.9); border-top:3px solid var(--yellow); }
+  .panel h2 { margin:0 0 6px; font-size:18px; color:var(--yellow); }
+  .panel p { margin:0 0 8px; font-size:16px; line-height:1.45; }
+  .row { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .row button { padding:10px 16px; border:0; border-radius:6px; font-size:18px; font-weight:bold; }
+  .nav { background:var(--yellow); color:var(--dark); }
+  .voice { background:var(--orange); color:#fff; }
+  #count { font-size:14px; color:#d6d3d1; }
+  .bar { height:6px; background:#44403c; border-radius:3px; margin-bottom:8px; overflow:hidden; }
+  .bar div { height:100%; width:0; background:linear-gradient(90deg,var(--orange),var(--yellow)); transition:width .3s; }
+  #lesson { display:none; }
+  #arbtn { margin-top:8px; width:100%; padding:10px; border:0; border-radius:6px; background:#16a34a; color:#fff; font-size:16px; font-weight:bold; }
+  #hiddenAR { position:fixed; bottom:0; left:0; width:2px; height:2px; opacity:.01; z-index:1; }
 
-  .nav { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; }
-  .nav button {
-    padding: 12px 26px; border: 0; border-radius: 6px; background: var(--yellow);
-    color: var(--dark); font-size: 20px; font-weight: bold;
-  }
-  .nav span { color: #d6d3d1; font-size: 15px; }
+  #start { position:fixed; inset:0; z-index:10; background:rgba(0,0,0,.9);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:22px; }
+  #start h2 { color:var(--yellow); }
+  #start button { margin-top:12px; padding:14px 26px; border:0; border-radius:8px;
+    background:var(--yellow); color:var(--dark); font-size:20px; font-weight:bold; }
+  #toast { position:fixed; left:12px; right:12px; top:46%; z-index:9; padding:12px; border-radius:8px; text-align:center;
+    font-size:17px; font-weight:bold; background:rgba(127,29,29,.95); display:none; }
 </style>
 </head>
 <body>
-  <div class="stripe"></div>
-  <header>
-    <div class="icon">⛑️</div>
-    <div>
-      <h1 id="title"></h1>
-      <small id="sub"></small>
-    </div>
-  </header>
-  <div class="stripe"></div>
+  <video id="cam" autoplay playsinline muted></video>
+  <div id="tint"></div>
+  <div class="stripe top"></div>
 
-  <main>
+  <header>
+    <h1 id="title"></h1>
+    <small id="sub"></small>
     <div class="lang">
       <button onclick="setLang('ta')">தமிழ்</button>
-      <button onclick="setLang('en')">English</button>
+      <button onclick="setLang('en')">EN</button>
     </div>
+  </header>
 
-    <div class="depth">
-      <span id="depthLabel"></span>
-      <div class="track"><div class="fill" id="fill"></div></div>
-    </div>
+  <div id="timer"></div>
+  <div id="cross"></div>
+  <div id="arrow">⬆</div>
+  <button class="item" id="it0" onclick="tapItem(0)">🧯</button>
+  <button class="item" id="it1" onclick="tapItem(1)">🪣</button>
+  <div id="toast"></div>
 
-    <model-viewer src="extinguisher.glb" alt="Fire extinguisher"
-      ar ar-modes="webxr scene-viewer" camera-controls auto-rotate>
-    </model-viewer>
+  <!-- SEARCH PANEL -->
+  <div class="panel" id="search">
+    <h2 id="sTitle"></h2>
+    <p id="sText"></p>
+    <div class="row"><button class="voice" onclick="speakSearch()">🔊</button></div>
+  </div>
 
-    <div class="card">
-      <h2 id="stepTitle"></h2>
-      <p id="stepText"></p>
-      <button onclick="speak()">🔊</button>
-    </div>
-
-    <div class="nav">
-      <button onclick="move(-1)">◀</button>
+  <!-- LESSON PANEL -->
+  <div class="panel" id="lesson">
+    <div class="bar"><div id="fill"></div></div>
+    <h2 id="stepTitle"></h2>
+    <p id="stepText"></p>
+    <div class="row">
+      <button class="nav" onclick="move(-1)">◀</button>
+      <button class="voice" onclick="speak()">🔊</button>
       <span id="count"></span>
-      <button onclick="move(1)">▶</button>
+      <button class="nav" onclick="move(1)">▶</button>
     </div>
-  </main>
+    <button id="arbtn" onclick="openAR()"></button>
+  </div>
+
+  <model-viewer id="hiddenAR" src="extinguisher.glb" alt="Fire extinguisher"
+    ar ar-modes="webxr scene-viewer"></model-viewer>
+  <div class="stripe bottom"></div>
+
+  <div id="start">
+    <h2 id="startTitle"></h2>
+    <p id="startText"></p>
+    <button onclick="startAll()">▶ START</button>
+  </div>
 
 <script>
-const titles = { ta: "சுரங்கப் பாதுகாப்பு பயிற்சி", en: "Mine Safety Training" };
-const subs = { ta: "தீ மற்றும் வெடிப்பு பாதுகாப்பு", en: "Fire & Explosion
+const T = {
+  ta: { title:"சுரங்கப் பாதுகாப்பு பயிற்சி", sub:"தீ மற்றும் வெடிப்பு பாதுகாப்பு",
+        startTitle:"சுரங்கப் பயிற்சிக்குத் தயார்",
+        startText:"கேமராவையும் இயக்கத்தையும் அனுமதிக்கவும். பிறகு போனை சுற்றி திருப்பவும்.",
+        sTitle:"🔥 அவசரம்! மின் பலகையில் தீ!",
+        sText:"சுற்றிலும் போனைத் திருப்பி சரியான தீ அணைப்பானைக் கண்டுபிடியுங்கள். அம்புக்குறி வழி காட்டும். கண்டதும் அதைத் தொடுங்கள்.",
+        found:"சரி! அணைப்பான் கிடைத்தது. நேரம்: ", wrong:"தவறு! மின் தீக்கு தண்ணீர் பயன்படுத்தக் கூடாது!",
+        arBtn:"📷 உங்கள் இடத்தில் அணைப்பானை வைத்துப் பாருங்கள்", secs:" வி" },
+  en: { title:"Mine Safety Training", sub:"Fire & Explosion Response",
+        startTitle:"Ready for mine training",
+        startText:"Allow camera and motion access. Then turn your phone around.",
+        sTitle:"🔥 Emergency! Fire at the electrical panel!",
+        sText:"Turn your phone around to find the correct fire extinguisher. The arrow shows the way. Tap it when you see it.",
+        found:"Correct! Extinguisher found. Time: ", wrong:"Wrong! Never use water on an electrical fire!",
+        arBtn:"📷 Place the extinguisher in your space (AR)", secs:" s" }
+};
+
+const steps = [
+  { ta:{t:"முதலில் இதைச் செய்யுங்கள்",x:"தீ பிடித்தால் முதலில் மற்றவர்களை எச்சரிக்கை செய்யுங்கள். தீ சிறியதாக இருந்தால் மட்டும் அணைப்பானைப் பயன்படுத்துங்கள். வெளியேறும் வழி எப்போதும் உங்கள் பின்னால் இருக்க வேண்டும்."},
+    en:{t:"Do this first",x:"When a fire starts, alert others first. Use the extinguisher only if the fire is small. Always keep your exit behind you."} },
+  { ta:{t:"P - இழுக்கவும்",x:"அணைப்பானின் பாதுகாப்புப் பின்னை இழுக்கவும்."}, en:{t:"P - Pull",x:"Pull the safety pin of the extinguisher."} },
+  { ta:{t:"A - குறி வையுங்கள்",x:"நெருப்பின் அடிப்பகுதியை நோக்கிக் குறி வையுங்கள்."}, en:{t:"A - Aim",x:"Aim at the base of the fire."} },
+  { ta:{t:"S - அழுத்துங்கள்",x:"கைப்பிடியை அழுத்துங்கள்."}, en:{t:"S - Squeeze",x:"Squeeze the handle."} },
+  { ta:{t:"S - இடம் வலமாக தெளியுங்கள்",x:"அணைப்பானை இடமிருந்து வலமாக நகர்த்தித் தெளியுங்கள்."}, en:{t:"S - Sweep",x:"Sweep from side to side across the base of the fire."} }
+];
+
+let lang="ta", i=0, phase="idle", t0=0, foundTime=0;
+const $ = id => document.getElementById(id);
+
+/* ---------- text ---------- */
+function render(){
+  const L=T[lang];
+  $("title").textContent=L.title; $("sub").textContent=L.sub;
+  $("startTitle").textContent=L.startTitle; $("startText").textContent=L.startText;
+  $("sTitle").textContent=L.sTitle; $("sText").textContent=L.sText;
+  $("arbtn").textContent=L.arBtn;
+  $("stepTitle").textContent=steps[i][lang].t;
+  $("stepText").textContent=steps[i][lang].x;
+  $("count").textContent=(i+1)+" / "+steps.length;
+  $("fill").style.width=((i+1)/steps.length*100)+"%";
+}
+function setLang(l){ lang=l; render(); }
+function move(d){ i=Math.max(0,Math.min(steps.length-1,i+d)); speechSynthesis.cancel(); render(); }
+
+/* ---------- voice ---------- */
+function tts(text,l){ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(text); u.lang=l; speechSynthesis.speak(u); }
+function speak(){
+  const s=steps[i];
+  if(lang==="ta"){ const a=new Audio("ta"+(i+1)+".mp3"); a.play().catch(()=>tts(s.ta.x,"ta-IN")); }
+  else tts(s.en.x,"en-IN");
+}
+function speakSearch(){
+  const L=T[lang];
+  if(lang==="ta"){ const a=new Audio("ta0.mp3"); a.play().catch(()=>tts(L.sTitle+" "+L.sText,"ta-IN")); }
+  else tts(L.sTitle+" "+L.sText,"en-IN");
+}
+
+/* ---------- sensors + 3D math ---------- */
+let A=0,B=0,G=0,haveSensor=false,az0=null;
+const rad=d=>d*Math.PI/180;
+
+function mul(a,b){ const r=[[0,0,0],[0,0,0],[0,0,0]];
+  for(let i=0;i<3;i++)for(let j=0;j<3;j++)for(let k=0;k<3;k++)r[i][j]+=a[i][k]*b[k][j]; return r; }
+function rotation(a,b,g){
+  const ca=Math.cos(a),sa=Math.sin(a),cb=Math.cos(b),sb=Math.sin(b),cg=Math.cos(g),sg=Math.sin(g);
+  const Rz=[[ca,-sa,0],[sa,ca,0],[0,0,1]];
+  const Rx=[[1,0,0],[0,cb,-sb],[0,sb,cb]];
+  const Ry=[[cg,0,sg],[0,1,0],[-sg,0,cg]];
+  return mul(mul(Rz,Rx),Ry);
+}
+function forwardAz(R){ // direction camera is facing, degrees from start frame
+  const x=-R[0][2], y=-R[1][2];
+  return Math.atan2(x,y)*180/Math.PI;
+}
+
+window.addEventListener("deviceorientation",e=>{
+  if(e.alpha===null||e.alpha===undefined) return;
+  A=rad(e.alpha); B=rad(e.beta); G=rad(e.gamma); haveSensor=true;
+});
+
+/* items: azimuth offset from the direction you face at start */
+const items=[
+  {id:"it0", off:140, el:-8, correct:true},
+  {id:"it1", off:-80, el:-12, correct:false}
+];
+
+function loop(){
+  requestAnimationFrame(loop);
+  if(phase!=="search"||!haveSensor) return;
+  const R=rotation(A,B,G);
+  if(az0===null){ az0=forwardAz(R); }
+  const w=innerWidth,h=innerHeight;
+  const f=(w/2)/Math.tan(rad(50)/2);
+  let anyVisible=false, targetVec=null;
+
+  items.forEach((it,idx)=>{
+    const az=rad(az0+it.off), el=rad(it.el);
+    const v=[Math.sin(az)*Math.cos(el), Math.cos(az)*Math.cos(el), Math.sin(el)];
+    // world -> device: R^T * v
+    const d=[0,1,2].map(c=>R[0][c]*v[0]+R[1][c]*v[1]+R[2][c]*v[2]);
+    const depth=-d[2];
+    const el_=$(it.id);
+    if(depth>0.05){
+      const sx=w/2+f*d[0]/depth, sy=h/2-f*d[1]/depth;
+      if(sx>-40&&sx<w+40&&sy>-40&&sy<h+40){
+        el_.style.display="block"; el_.style.left=sx+"px"; el_.style.top=sy+"px";
+        if(it.correct) anyVisible=true; 
+      } else el_.style.display="none";
+    } else el_.style.display="none";
+    if(it.correct) targetVec=d;
+  });
+
+  // arrow to the extinguisher
+  if(anyVisible){ $("arrow").style.display="none"; }
+  else if(targetVec){
+    $("arrow").style.display="block";
+    const ang=Math.atan2(targetVec[0],targetVec[1])*180/Math.PI;
+    $("arrow").style.transform="rotate("+ang+"deg)";
+  }
+  $("timer").textContent="⏱ "+Math.floor((Date.now()-t0)/1000)+T[lang].secs;
+}
+
+/* ---------- game events ---------- */
+function toast(msg){ const t=$("toast"); t.textContent=msg; t.style.display="block"; setTimeout(()=>t.style.display="none",2200); }
+
+function tapItem(idx){
+  if(phase!=="search") return;
+  if(items[idx].correct){
+    foundTime=Math.floor((Date.now()-t0)/1000);
+    phase="lesson";
+    items.forEach(it=>$(it.id).style.display="none");
+    $("arrow").style.display="none"; $("timer").style.display="none";
+    $("search").style.display="none"; $("lesson").style.display="block";
+    toast(T[lang].found+foundTime+T[lang].secs);
+    $("toast").style.background="rgba(21,128,61,.95)";
+    localStorage.setItem("searchTime",foundTime);
+  } else {
+    $("toast").style.background="rgba(127,29,29,.95)";
+    toast(T[lang].wrong);
+  }
+}
+
+function openAR(){ const mv=$("hiddenAR"); if(mv.canActivateAR) mv.activateAR(); else alert("AR not supported on this device"); }
+
+async function startAll(){
+  try{
+    if(typeof DeviceOrientationEvent!=="undefined" && typeof DeviceOrientationEvent.requestPermission==="function"){
+      await DeviceOrientationEvent.requestPermission();
+    }
+  }catch(e){}
+  try{
+    const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"},audio:false});
+    $("cam").srcObject=s;
+  }catch(e){ alert("Camera not available: "+e.message); }
+  $("start").style.display="none";
+  az0=null; t0=Date.now(); phase="search";
+  speakSearch();
+}
+
+render(); loop();
+</script>
+</body>
+</html>
