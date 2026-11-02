@@ -1,0 +1,11 @@
+Model Information:
+* title:	Thai water bucket
+* source:	https://sketchfab.com/3d-models/thai-water-bucket-2051cd44e1c245838dbb4bd4d698efe3
+* author:	N0M4DXII (https://sketchfab.com/n0madxii)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Thai water bucket" (https://sketchfab.com/3d-models/thai-water-bucket-2051cd44e1c245838dbb4bd4d698efe3) by N0M4DXII (https://sketchfab.com/n0madxii) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
