@@ -61,13 +61,14 @@ function initGL(){
     float t = mod(az-az0+45.0,360.0)/90.0;
     float ti = floor(t); float fr = t-ti;
     if(mod(ti,2.0)>=1.0) fr = 1.0-fr;
-    float vy = 0.5-el/vspan; float shade=1.0;
-    if(vy<0.0){ vy=0.0; shade=0.55; } else if(vy>1.0){ vy=1.0; shade=0.45; }
+    float vy = 0.5-el/vspan; float shade=1.0; float over=0.0;
+    if(vy<0.0){ over=-vy; vy=0.0; shade=0.55; } else if(vy>1.0){ over=vy-1.0; vy=1.0; shade=0.45; }
     vec2 uv = vec2(fr,vy);
     vec3 c0 = texture2D(tex,uv).rgb;
     vec3 s = texture2D(tex,uv+vec2(px.x,0.0)).rgb + texture2D(tex,uv-vec2(px.x,0.0)).rgb
            + texture2D(tex,uv+vec2(0.0,px.y)).rgb + texture2D(tex,uv-vec2(0.0,px.y)).rgb;
     vec3 c = clamp(c0 + (c0 - s*0.25)*0.7, 0.0, 1.0)*shade;
+    c = mix(c, vec3(0.06,0.05,0.04), smoothstep(0.0,0.10,over));   // beyond the photo: fade to dark rock instead of stretched streaks
     float g = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898,78.233)))*43758.5453);
     c += (g-0.5)*0.03;
     gl_FragColor = vec4(c,1.0);
@@ -130,13 +131,23 @@ const BUCKET_SVG='<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><e
 const FLAME_HTML='<div class="flame"><i></i><i></i><i></i></div>';
 
 const items=[
-  {cls:"fire",      video:"fire.mp4", fb:FLAME_HTML,                    off:-7,   el:1,   m:140},
+  {cls:"fire",      video:"frontend/assets/video/fire.mp4", fb:FLAME_HTML,                    off:-7,   el:1,   m:140},
   {cls:"sign tag",  html:"440V PANEL",                                   off:-7,   el:-9,  m:100},
   {cls:"sign exit", html:"EXIT ➜",                                       off:90,   el:8,   m:100},
   {cls:"sign warn", html:"⚠ GAS HAZARD",                                 off:-90,  el:8,   m:110},
-  {cls:"ext",       img:"ext.png",    fb:extSVG("g1"),                   off:146,  el:1,   m:70, kind:"ext"},
-  {cls:"bucket",    img:"bucket.png", fb:BUCKET_SVG,                    off:-75,  el:-20, m:70, kind:"bucket"}
+  {cls:"ext",       model:"extinguisher.glb", orbit:"-25deg 80deg auto", fb:extSVG("g1"),                   off:146,  el:1,   m:70, kind:"ext"},
+  {cls:"bucket",    model:"frontend/assets/models/bucket.glb", orbit:"20deg 62deg auto", fb:BUCKET_SVG,                    off:-75,  el:-20, m:70, kind:"bucket"}
 ];
+// builds a small 3D viewer for one .glb model (transparent background, no user controls)
+function makeModel(src, orbit){
+  const mv=document.createElement("model-viewer");
+  mv.setAttribute("src",src); mv.setAttribute("loading","eager");
+  mv.setAttribute("camera-orbit",orbit); mv.setAttribute("interaction-prompt","none");
+  mv.setAttribute("disable-zoom",""); mv.setAttribute("disable-pan",""); mv.setAttribute("disable-tap","");
+  mv.setAttribute("shadow-intensity","0"); mv.setAttribute("exposure","1.1");
+  return mv;
+}
+
 items.forEach(it=>{
   const e=document.createElement("div");
   e.className="item "+it.cls;
@@ -145,14 +156,18 @@ items.forEach(it=>{
     v.src=it.video; v.muted=true; v.loop=true; v.autoplay=true; v.setAttribute("playsinline","");
     v.onerror=()=>{ e.innerHTML=it.fb; };
     e.appendChild(v); it.v=v;
-  } else if(it.img){
-    const im=new Image(); im.src=it.img; im.onerror=()=>{ e.innerHTML=it.fb; }; e.appendChild(im);
+  } else if(it.model){
+    const mv=makeModel(it.model,it.orbit);
+    mv.addEventListener("error",()=>{ e.innerHTML=it.fb; });   // if the model fails to load, show the drawn version
+    e.appendChild(mv);
   } else e.innerHTML=it.html;
   if(it.kind) e.onclick=()=>tapItem(it);
   document.body.appendChild(e); it.el_=e;
 });
 (function(){   // extinguisher the worker holds
-  const h=$("held"), im=new Image(); im.src="ext.png"; im.onerror=()=>{ h.innerHTML=extSVG("g2"); }; h.appendChild(im);
+  const h=$("held"), mv=makeModel("extinguisher.glb","-30deg 80deg auto");
+  mv.addEventListener("error",()=>{ h.innerHTML=extSVG("g2"); });
+  h.appendChild(mv);
 })();
 
 function loop(){
