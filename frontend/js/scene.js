@@ -133,10 +133,10 @@ const FLAME_HTML='<div class="flame"><i></i><i></i><i></i></div>';
 const items=[
   {cls:"fire",      video:"frontend/assets/video/fire.mp4", fb:FLAME_HTML,                    off:-7,   el:1,   m:140},
   {cls:"sign tag",  html:"440V PANEL",                                   off:-7,   el:-9,  m:100},
-  {cls:"sign exit", html:"EXIT ➜",                                       off:90,   el:8,   m:100},
+  {cls:"sign exit", html:"EXIT ➜",                                       off:16,   el:14,  m:100, kind:"exit"},
   {cls:"sign warn", html:"⚠ GAS HAZARD",                                 off:-90,  el:8,   m:110},
-  {cls:"ext",       model:"extinguisher.glb", orbit:"-25deg 80deg auto", fb:extSVG("g1"),                   off:146,  el:1,   m:70, kind:"ext"},
-  {cls:"bucket",    model:"frontend/assets/models/bucket.glb", orbit:"20deg 62deg auto", fb:BUCKET_SVG,                    off:-75,  el:-20, m:70, kind:"bucket"}
+  {cls:"ext",       model:"extinguisher.glb", orbit:"-25deg 80deg auto", fb:extSVG("g1"),                   off:30,   el:1,   m:70, kind:"ext"},
+  {cls:"bucket",    model:"frontend/assets/models/bucket.glb", orbit:"20deg 62deg auto", fb:BUCKET_SVG,                    off:-35,  el:-14, m:70, kind:"bucket"}
 ];
 // builds a small 3D viewer for one .glb model (transparent background, no user controls)
 function makeModel(src, orbit){
@@ -178,32 +178,31 @@ function loop(){
   drawPano(R);
 
   const w=innerWidth,h=innerHeight,f=focal();
-  let extVisible=false, extVec=null;
   items.forEach(it=>{
     if(it.gone){ it.el_.style.display="none"; return; }
     const az=rad(az0+it.off), el=rad(it.el);
     const v=[Math.sin(az)*Math.cos(el), Math.cos(az)*Math.cos(el), Math.sin(el)];
     const d=[0,1,2].map(c=>R[0][c]*v[0]+R[1][c]*v[1]+R[2][c]*v[2]);
     const depth=-d[2];
-    if(it.kind==="ext") extVec=d;
+    it.d=d; it.vis=false;
     if(depth>0.05){
       const sx=w/2+f*d[0]/depth, sy=h/2-f*d[1]/depth;
       if(sx>-it.m&&sx<w+it.m&&sy>-it.m&&sy<h+it.m){
         it.el_.style.display="block"; it.el_.style.left=sx+"px"; it.el_.style.top=sy+"px";
-        if(it.kind==="ext") extVisible=true;
+        it.vis=true;
         return;
       }
     }
     it.el_.style.display="none";
   });
 
-  if(phase==="search"){
-    if(extVisible) $("arrow").style.display="none";
-    else if(extVec){
-      $("arrow").style.display="block";
-      $("arrow").style.transform="rotate("+(Math.atan2(extVec[0],extVec[1])*180/Math.PI)+"deg)";
-    }
-    $("timer").textContent="Time: "+Math.floor((Date.now()-t0)/1000)+" s";
-  }
+  // arrow: points to the extinguisher while searching, and to the EXIT sign once the fire is out
+  const tgt = (phase==="search") ? items.find(x=>x.kind==="ext")
+            : (phase==="lesson" && fireOut) ? items.find(x=>x.kind==="exit") : null;
+  if(tgt && tgt.d){
+    if(tgt.vis) $("arrow").style.display="none";
+    else { $("arrow").style.display="block"; $("arrow").style.transform="rotate("+(Math.atan2(tgt.d[0],tgt.d[1])*180/Math.PI)+"deg)"; }
+  } else $("arrow").style.display="none";
+  if(phase==="search") $("timer").textContent="Time: "+Math.floor((Date.now()-t0)/1000)+" s";
 }
 

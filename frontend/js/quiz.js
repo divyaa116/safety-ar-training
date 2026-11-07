@@ -23,7 +23,7 @@ const QUIZ = [
 
 /* ======== quiz ======== */
 function startQuiz(){
-  phase="quiz"; qi=0; score=0;
+  phase="quiz"; qi=0; score=0; fireOut=false; hide("arrow");
   hide("lesson"); hide("held"); $("spray").className=""; hide("result");
   show("quiz"); renderQ();
 }

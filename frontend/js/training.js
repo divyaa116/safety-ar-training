@@ -18,6 +18,7 @@ function render(){
   $("nextBtn").textContent = (i===steps.length-1) ? "Quiz ▶" : "▶";
   if(phase==="lesson") updateScene();
 }
+const exitItem=()=>items.find(x=>x.kind==="exit");
 function updateScene(){
   show("held");
   $("spray").className = (i>=3) ? (i===4 ? "on sweep" : "on") : "";
@@ -25,23 +26,36 @@ function updateScene(){
   clearTimeout(fireT);
   if(i===4){
     f.classList.add("out");
-    fireT=setTimeout(()=>{ if(i===4&&phase==="lesson"){ toast("Fire is out! Well done!","rgba(21,128,61,.95)"); $("spray").className=""; } },3800);
-  } else f.classList.remove("out");
+    fireT=setTimeout(()=>{
+      if(i===4&&phase==="lesson"){
+        fireOut=true; $("spray").className=""; exitItem().el_.classList.add("hint");
+        toast("Fire is out! Now tap the EXIT sign to leave the area.","rgba(21,128,61,.95)",3500);
+      }
+    },3800);
+  } else { f.classList.remove("out"); fireOut=false; exitItem().el_.classList.remove("hint"); }
 }
 function move(d){
   if(d>0 && i===steps.length-1){ startQuiz(); return; }
   i=Math.max(0,Math.min(steps.length-1,i+d)); render();
 }
 function reviewLesson(){
-  hide("result"); hide("quiz"); phase="lesson"; i=0; show("lesson"); render();
+  hide("result"); hide("quiz"); phase="lesson"; i=0; fireOut=false; show("lesson"); render();
 }
 
 function tapItem(it){
+  if(it.kind==="exit"){
+    if(phase==="lesson" && fireOut){
+      toast("You left the area safely. Now the quiz.","rgba(21,128,61,.95)",1500);
+      setTimeout(startQuiz,900);
+    } else if(phase==="lesson") toast("Put out the fire first, then use the exit.","rgba(127,29,29,.95)");
+    else if(phase==="search") toast("First find the extinguisher.","rgba(127,29,29,.95)");
+    return;
+  }
   if(phase!=="search") return;
   if(it.kind==="ext"){
     foundTime=Math.floor((Date.now()-t0)/1000);
     phase="lesson";
-    items.forEach(x=>{ if(x.kind) x.gone=true; });
+    items.forEach(x=>{ if(x.kind==="ext"||x.kind==="bucket") x.gone=true; });
     hide("arrow"); hide("timer"); hide("search"); show("lesson");
     toast("Correct! Extinguisher found in "+foundTime+" s","rgba(21,128,61,.95)");
     updateScene();
