@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verify certificate - MineGuard</title>
+<style>
+  @font-face { font-family:"NotoTamilLocal"; src:url("/frontend/assets/fonts/NotoSansTamil-Regular.ttf") format("truetype"); font-weight:400; unicode-range:U+0B80-0BFF,U+200C-200D,U+25CC; }
+  @font-face { font-family:"NotoTamilLocal"; src:url("/frontend/assets/fonts/NotoSansTamil-Bold.ttf") format("truetype"); font-weight:700; unicode-range:U+0B80-0BFF,U+200C-200D,U+25CC; }
+  .sw { text-align:right; margin-bottom:6px; } .sw button { padding:5px 11px; margin-left:6px; border:2px solid #57534e; border-radius:8px; background:#1c1917; color:#d6d3d1; font-weight:bold; font-family:inherit; } .sw button.on { background:#facc15; border-color:#facc15; color:#1c1917; }
+  body { margin:0; background:#0c0a09; color:#fff; font-family:Arial,"NotoTamilLocal",sans-serif; padding:20px 16px; }
+  .card { max-width:520px; margin:6vh auto 0; background:#1c1917; border:2px solid #44403c; border-radius:14px; padding:20px; }
+  h1 { margin:0 0 4px; font-size:20px; color:#facc15; }
+  h2 { margin:14px 0 6px; font-size:24px; }
+  .ok { color:#22c55e; } .bad { color:#ef4444; } .grey { color:#a8a29e; }
+  p { line-height:1.5; color:#d6d3d1; margin:8px 0; }
+  table { width:100%; border-collapse:collapse; margin-top:10px; }
+  td { padding:7px 0; border-top:1px solid #292524; vertical-align:top; font-size:15px; }
+  td:first-child { color:#a8a29e; width:40%; }
+  .note { font-size:12px; color:#78716c; margin-top:14px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="sw"><button id="bEn" onclick="setL('en')">English</button><button id="bTa" onclick="setL('ta')">தமிழ்</button></div>
+  <h1 id="hTitle">MineGuard certificate check</h1>
+  <div id="out"><p>Checking...</p></div>
+  <p class="note" id="note">This page only confirms that the certificate was issued by the MineGuard training application and whether it is still valid. It is not a government-approved licence or an accredited qualification.</p>
+</div>
+<script>
+var TXT={
+ en:{title:"MineGuard certificate check",note:"This page only confirms that the certificate was issued by the MineGuard training application and whether it is still valid. It is not a government-approved licence or an accredited qualification.",checking:"Checking...",
+  nf:"Certificate not found",nfp:"No certificate with this ID exists. Please check the code or ask the worker for the original.",err:"Could not check right now",errp:"Please try again in a few minutes.",net:"Could not reach the server",netp:"Please check the internet connection and try again.",
+  valid:"Certificate is VALID",revoked:"Certificate has been REVOKED",revp:"This certificate is no longer valid",on:" (revoked on ",name:"Name",training:"Training",score:"Score",issued:"Issued",id:"Certificate ID"},
+ ta:{title:"MineGuard சான்றிதழ் சரிபார்ப்பு",note:"இந்தச் சான்றிதழ் MineGuard பயிற்சிச் செயலியால் வழங்கப்பட்டதா, இன்னும் செல்லுபடியாகுமா என்பதை மட்டுமே இந்தப் பக்கம் உறுதிப்படுத்துகிறது. இது அரசு அங்கீகாரம் பெற்ற உரிமமோ அங்கீகரிக்கப்பட்ட தகுதிச் சான்றோ அல்ல.",checking:"சரிபார்க்கிறது...",
+  nf:"சான்றிதழ் கிடைக்கவில்லை",nfp:"இந்த எண் கொண்ட சான்றிதழ் இல்லை. குறியீட்டைச் சரிபார்க்கவும் அல்லது பணியாளரிடம் அசல் சான்றிதழைக் கேளுங்கள்.",err:"இப்போது சரிபார்க்க முடியவில்லை",errp:"சில நிமிடங்கள் கழித்து மீண்டும் முயலுங்கள்.",net:"சேவையகத்தை அணுக முடியவில்லை",netp:"இணைய இணைப்பைச் சரிபார்த்து மீண்டும் முயலுங்கள்.",
+  valid:"சான்றிதழ் செல்லுபடியாகும்",revoked:"சான்றிதழ் ரத்து செய்யப்பட்டுள்ளது",revp:"இந்தச் சான்றிதழ் இனி செல்லாது",on:" (ரத்து செய்த நாள்: ",name:"பெயர்",training:"பயிற்சி",score:"மதிப்பெண்",issued:"வழங்கிய நாள்",id:"சான்றிதழ் எண்"}
+};
+var L=(function(){var q=new URLSearchParams(location.search).get("lang"); if(q==="ta"||q==="en") return q; try{return localStorage.getItem("mg_lang")==="ta"?"ta":"en";}catch(e){return "en";}})();
+var DATA=null, STATE="loading";
+function esc(s){ return String(s).replace(/[&<>"]/g,function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+function row(k,v){ return "<tr><td>"+k+"</td><td>"+esc(v)+"</td></tr>"; }
+function draw(){
+  var T=TXT[L], out=document.getElementById("out");
+  document.documentElement.lang=L; document.title=T.title; document.getElementById("hTitle").textContent=T.title; document.getElementById("note").textContent=T.note;
+  document.getElementById("bEn").className=L==="en"?"on":""; document.getElementById("bTa").className=L==="ta"?"on":"";
+  if(STATE==="loading"){ out.innerHTML="<p>"+T.checking+"</p>"; return; }
+  if(STATE==="nf"){ out.innerHTML='<h2 class="grey">'+T.nf+'</h2><p>'+T.nfp+'</p>'; return; }
+  if(STATE==="err"){ out.innerHTML='<h2 class="grey">'+T.err+'</h2><p>'+T.errp+'</p>'; return; }
+  if(STATE==="net"){ out.innerHTML='<h2 class="grey">'+T.net+'</h2><p>'+T.netp+'</p>'; return; }
+  var c=DATA, rows=row(T.name,c.fullName)+row(T.training,c.moduleTitle)+row(T.score,c.correctCount+" / "+c.totalQuestions+" ("+c.scorePercent+"%)")+row(T.issued,new Date(c.issuedAt).toISOString().slice(0,10))+row(T.id,c.certId);
+  if(c.status==="valid") out.innerHTML='<h2 class="ok">&#10004; '+T.valid+'</h2><table>'+rows+'</table>';
+  else out.innerHTML='<h2 class="bad">&#10008; '+T.revoked+'</h2><p>'+T.revp+(c.revokedAt?T.on+esc(new Date(c.revokedAt).toISOString().slice(0,10))+")":"")+'.</p><table>'+rows+'</table>';
+}
+function setL(l){ L=l; try{localStorage.setItem("mg_lang",l);}catch(e){} load(); }
+async function load(){
+  STATE="loading"; draw();
+  var id=location.pathname.split("/").filter(Boolean).pop()||"";
+  try{
+    var r=await fetch("/api/certificates/verify/"+encodeURIComponent(id)+"?lang="+L);
+    if(r.status===404) STATE="nf"; else if(!r.ok) STATE="err"; else { DATA=await r.json(); STATE="ok"; }
+  }catch(e){ STATE="net"; }
+  draw();
+}
+load();
+</script>
+</body>
+</html>
