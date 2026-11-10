@@ -1,61 +1,83 @@
-/* quiz.js - quiz questions and the quiz screens. NOTE: scoring still happens in the browser. Phase 5 moves it to the backend.
-   Loaded as a normal script (not a module), so the functions below are shared with the other files in this folder. */
+/* quiz.js - the quiz screens. The worker gets instant "right / wrong" feedback after EVERY answer.
+   The server marks each answer and LOCKS it, so a score cannot be changed from this page. */
 
-const PASS_MARK = 4;                                         // out of 5 questions
+let quizQs = [], quizTotal = 5, quizAttemptId = null, quizFeedback = [], quizResult = null, quizLocked = false;
 
-const QUIZ = [
-  { q:"A fire starts at an electrical panel in the mine. What should you do FIRST?",
-    o:["Fight it alone with a bucket of water","Alert others and raise the alarm","Ignore it because it is small","Take a photo for the report"], a:1,
-    e:"Always alert others first, so everyone can get out safely and help can come." },
-  { q:"Which of these must NOT be used on an electrical fire?",
-    o:["CO2 extinguisher","Dry powder extinguisher","A bucket of water","All three are safe"], a:2,
-    e:"Water conducts electricity and can cause a deadly shock." },
-  { q:"What does PASS stand for?",
-    o:["Push, Aim, Spray, Stop","Pull, Aim, Squeeze, Sweep","Pull, Alert, Shout, Spray","Pick, Aim, Squeeze, Stand"], a:1,
-    e:"Pull the pin, Aim at the base, Squeeze the handle, Sweep side to side." },
-  { q:"Where should you aim the extinguisher?",
-    o:["At the top of the flames","At the smoke","At the base of the fire","At the ceiling"], a:2,
-    e:"The base is the fuel source. Hitting the flames alone will not put the fire out." },
-  { q:"While fighting a small fire, where should your exit be?",
-    o:["Behind the fire","Behind you","Far away from you","It does not matter"], a:1,
-    e:"Keep the exit behind you so you can leave quickly if the fire grows." }
-];
-
-/* ======== quiz ======== */
-function startQuiz(){
-  phase="quiz"; qi=0; score=0; fireOut=false; hide("arrow");
-  hide("lesson"); hide("held"); $("spray").className=""; hide("result");
-  show("quiz"); renderQ();
+async function startQuiz() {
+  phase = "quiz"; fireOut = false;
+  hide("arrow"); hide("lesson"); hide("held"); $("spray").className = ""; hide("result");
+  try {
+    await api("POST", "/progress/fire/checkpoint", { checkpoint: "lesson" });   // "I finished the lesson"
+    const q = await api("POST", "/quiz/fire/start");
+    quizQs = q.questions; quizTotal = q.total; quizAttemptId = q.attemptId;
+    qi = 0; quizFeedback = []; quizResult = null;
+    show("quiz"); renderQ();
+  } catch (err) {
+    phase = "lesson"; show("lesson"); show("held");
+    toast(err.message, "rgba(127,29,29,.95)", 3500);
+  }
 }
-function renderQ(){
-  const q=QUIZ[qi]; answered=false;
-  $("qmeta").textContent="Question "+(qi+1)+" of "+QUIZ.length;
-  $("qtext").textContent=q.q;
-  $("qopts").innerHTML="";
-  q.o.forEach((t,k)=>{
-    const b=document.createElement("button"); b.className="opt"; b.textContent=t; b.onclick=()=>pick(k,b);
+
+function renderQ() {
+  const q = quizQs[qi];
+  quizLocked = false;
+  $("qmeta").textContent = t("quiz.q", { n: qi + 1, t: quizQs.length });
+  $("qtext").textContent = q.text;
+  $("qopts").innerHTML = "";
+  q.options.forEach((t, k) => {
+    const b = document.createElement("button");
+    b.className = "opt"; b.textContent = t; b.onclick = () => pick(k);
     $("qopts").appendChild(b);
   });
   hide("qexp"); hide("qnext");
-  $("qnext").textContent = (qi===QUIZ.length-1) ? "See result" : "Next";
-}
-function pick(k,btn){
-  if(answered) return; answered=true;
-  const q=QUIZ[qi], all=$("qopts").children;
-  if(k===q.a){ score++; btn.classList.add("good"); } else { btn.classList.add("bad"); all[q.a].classList.add("good"); }
-  $("qexp").textContent=(k===q.a?"Correct. ":"Not quite. ")+q.e;
-  show("qexp"); show("qnext");
-}
-function nextQ(){ qi++; if(qi>=QUIZ.length) showResult(); else renderQ(); }
-function showResult(){
-  hide("quiz"); show("result");
-  const pass=score>=PASS_MARK;
-  $("rtitle").textContent = pass ? "You passed!" : "Not passed yet";
-  $("rtext").textContent = "Your score: "+score+" out of "+QUIZ.length+". "+(pass
-    ? "Well done, "+workerName+". You can now generate your certificate."
-    : "You need at least "+PASS_MARK+" correct answers. Review the lesson or try again.");
-  $("rcert").style.display = pass ? "block" : "none";
-  $("rretry").style.display = pass ? "none" : "block";
-  $("rlesson").style.display = pass ? "none" : "block";
 }
 
+// The worker taps an answer: send it to the server, then show right/wrong and the explanation.
+async function pick(k) {
+  if (quizLocked) return;
+  quizLocked = true;
+  const q = quizQs[qi], btns = [...$("qopts").children];
+  btns[k].classList.add("sel");
+  try {
+    const f = await api("POST", "/quiz/fire/answer", { attemptId: quizAttemptId, questionId: q.id, selected: k });
+    quizFeedback[qi] = f;
+    btns.forEach(b => b.disabled = true);
+    btns[f.correctIndex].classList.add("good");
+    if (!f.correct) btns[k].classList.add("bad");
+    $("qexp").textContent = t(f.correct ? "quiz.right" : "quiz.wrong") + f.explanation;
+    show("qexp");
+    if (f.finished) { quizResult = f.result; score = f.result.correctCount; }
+    $("qnext").textContent = t(qi === quizQs.length - 1 ? "quiz.result" : "quiz.next");
+    show("qnext");
+  } catch (err) {
+    btns[k].classList.remove("sel");
+    toast(err.message, "rgba(127,29,29,.95)", 3500);
+    if (err.status === 404) setTimeout(startQuiz, 1600);   // the attempt expired: start a fresh one
+    else quizLocked = false;
+  }
+}
+
+function nextQ() {
+  if (qi < quizQs.length - 1) { qi++; renderQ(); return; }
+  if (quizResult) showResult(quizResult);
+}
+
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+
+function showResult(r) {
+  hide("quiz"); show("result");
+  $("rtitle").textContent = t(r.passed ? "res.pass" : "res.fail");
+  $("rtext").textContent = t("res.score", { c: r.correctCount, t: r.total, p: r.scorePercent }) + (r.passed
+    ? t("res.passMsg", { name: workerName })
+    : t("res.failMsg", { n: r.passCorrect, p: r.passPercent }));
+  $("rreview").innerHTML = r.review.map((x, n) => {
+    const q = quizQs[n];
+    return x.correct
+      ? '<div class="rv good"><b>&#10004; ' + esc(q.text) + '</b></div>'
+      : '<div class="rv bad"><b>&#10008; ' + esc(q.text) + '</b><br>' + t('res.yours') + esc(q.options[x.selected]) +
+        '<br>' + t('res.correct') + esc(q.options[x.correctIndex]) + '<br><i>' + esc(x.explanation) + '</i></div>';
+  }).join("");
+  $("rcert").style.display = r.passed ? "block" : "none";
+  $("rretry").style.display = r.passed ? "none" : "block";
+  $("rlesson").style.display = r.passed ? "none" : "block";
+}

@@ -132,9 +132,9 @@ const FLAME_HTML='<div class="flame"><i></i><i></i><i></i></div>';
 
 const items=[
   {cls:"fire",      video:"frontend/assets/video/fire.mp4", fb:FLAME_HTML,                    off:-7,   el:1,   m:140},
-  {cls:"sign tag",  html:"440V PANEL",                                   off:-7,   el:-9,  m:100},
-  {cls:"sign exit", html:"EXIT ➜",                                       off:16,   el:14,  m:100, kind:"exit"},
-  {cls:"sign warn", html:"⚠ GAS HAZARD",                                 off:-90,  el:8,   m:110},
+  {cls:"sign tag",  key:"sign.panel",                                   off:-7,   el:-9,  m:100},
+  {cls:"sign exit", key:"sign.exit",                                       off:16,   el:14,  m:100, kind:"exit"},
+  {cls:"sign warn", key:"sign.gas",                                 off:-90,  el:8,   m:110},
   {cls:"ext",       model:"extinguisher.glb", orbit:"-25deg 80deg auto", fb:extSVG("g1"),                   off:30,   el:1,   m:70, kind:"ext"},
   {cls:"bucket",    model:"frontend/assets/models/bucket.glb", orbit:"20deg 62deg auto", fb:BUCKET_SVG,                    off:-35,  el:-14, m:70, kind:"bucket"}
 ];
@@ -160,6 +160,7 @@ items.forEach(it=>{
     const mv=makeModel(it.model,it.orbit);
     mv.addEventListener("error",()=>{ e.innerHTML=it.fb; });   // if the model fails to load, show the drawn version
     e.appendChild(mv);
+  } else if(it.key){ e.textContent=t(it.key);
   } else e.innerHTML=it.html;
   if(it.kind) e.onclick=()=>tapItem(it);
   document.body.appendChild(e); it.el_=e;
@@ -203,6 +204,6 @@ function loop(){
     if(tgt.vis) $("arrow").style.display="none";
     else { $("arrow").style.display="block"; $("arrow").style.transform="rotate("+(Math.atan2(tgt.d[0],tgt.d[1])*180/Math.PI)+"deg)"; }
   } else $("arrow").style.display="none";
-  if(phase==="search") $("timer").textContent="Time: "+Math.floor((Date.now()-t0)/1000)+" s";
+  if(phase==="search") $("timer").textContent=t("timer",{s:Math.floor((Date.now()-t0)/1000)});
 }
 

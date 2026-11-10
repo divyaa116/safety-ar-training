@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mine Safety Training</title>
 <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 <link rel="stylesheet" href="frontend/css/styles.css">
 </head>
 <body>
@@ -13,8 +12,9 @@
   <div id="vig"></div><div id="lamp"></div>
 
   <header>
-    <h1>Mine Safety Training</h1>
-    <small>Fire &amp; Explosion Response</small>
+    <h1 data-i18n="app.title">Mine Safety Training</h1>
+    <small data-i18n="app.module">Fire &amp; Explosion Response</small>
+    <div class="langsw hdr"><button type="button" data-lang="en" onclick="setLang('en')">English</button><button type="button" data-lang="ta" onclick="setLang('ta')">தமிழ்</button></div>
   </header>
 
   <div id="timer"></div>
@@ -25,8 +25,8 @@
   <div id="spray"><i></i><i></i><i></i></div>
 
   <div class="panel" id="search">
-    <h2>Emergency! Fire at the electrical panel!</h2>
-    <p>Turn your phone around to find the correct fire extinguisher on the mine wall. The arrow shows the way. Tap it when you see it.</p>
+    <h2 data-i18n="search.title">Emergency! Fire at the electrical panel!</h2>
+    <p data-i18n="search.text">Turn your phone around to find the correct fire extinguisher on the mine wall. The arrow shows the way. Tap it when you see it.</p>
   </div>
 
   <div class="panel" id="lesson">
@@ -38,22 +38,65 @@
       <span id="count"></span>
       <button class="nav" id="nextBtn" onclick="move(1)">▶</button>
     </div>
-    <button id="arbtn" onclick="openAR()">View the extinguisher in AR (ARCore)</button>
+    <button id="arbtn" onclick="openAR()" data-i18n="ar.btn">View the extinguisher in AR (ARCore)</button>
   </div>
 
   <model-viewer id="hiddenAR" src="extinguisher.glb" alt="Fire extinguisher"
     ar ar-modes="webxr scene-viewer"></model-viewer>
 
-  <!-- START -->
-  <div class="overlay" id="start" style="display:block">
-    <div class="card" style="margin-top:8vh">
-      <h2>Mine Safety Training</h2>
-      <p>Fire &amp; Explosion Response. Complete the training and the quiz to earn a verifiable certificate.</p>
-      <input id="wname" type="text" placeholder="Your full name" maxlength="40" autocomplete="off">
-      <input id="wid" type="text" placeholder="Worker ID (optional)" maxlength="20" autocomplete="off">
-      <div id="err"></div>
-      <button class="big" onclick="startAll()">Start training</button>
-      <p style="font-size:14px">Allow motion access if your phone asks.</p>
+  <!-- LOADING (shown until we know whether the worker is already logged in) -->
+  <div class="overlay" id="loading" style="display:block">
+    <div class="card" style="margin-top:30vh;text-align:center"><h2 data-i18n="app.title">Mine Safety Training</h2><p data-i18n="loading">Loading...</p></div>
+  </div>
+
+  <!-- LOGIN / REGISTER -->
+  <div class="overlay" id="auth">
+    <div class="card" style="margin-top:4vh">
+      <div class="langsw"><button type="button" data-lang="en" onclick="setLang('en')">English</button><button type="button" data-lang="ta" onclick="setLang('ta')">தமிழ்</button></div>
+      <h2 data-i18n="app.title">Mine Safety Training</h2>
+      <p data-i18n="auth.intro">Fire &amp; Explosion Response. Create an account to save your progress and earn a verifiable certificate.</p>
+      <div class="tabs">
+        <button type="button" id="tabLogin" class="on" onclick="showTab('login')" data-i18n="auth.login">Log in</button>
+        <button type="button" id="tabRegister" onclick="showTab('register')" data-i18n="auth.register">Register</button>
+      </div>
+      <div id="authMsg" class="msg"></div>
+
+      <form id="loginForm" onsubmit="submitLogin(event);return false;">
+        <input id="liEmail" type="email" placeholder="" data-i18n-ph="ph.email" autocomplete="email" maxlength="100">
+        <input id="liPass" type="password" placeholder="" data-i18n-ph="ph.password" autocomplete="current-password" maxlength="72">
+        <button class="big" id="liBtn" type="submit" data-i18n="auth.login">Log in</button>
+      </form>
+
+      <form id="registerForm" style="display:none" onsubmit="submitRegister(event);return false;">
+        <input id="rgName" type="text" placeholder="" data-i18n-ph="ph.fullName" autocomplete="name" maxlength="60">
+        <input id="rgEmail" type="email" placeholder="" data-i18n-ph="ph.email" autocomplete="email" maxlength="100">
+        <input id="rgWid" type="text" placeholder="" data-i18n-ph="ph.workerId" autocomplete="off" maxlength="20">
+        <input id="rgPass" type="password" placeholder="" data-i18n-ph="ph.password" autocomplete="new-password" maxlength="72">
+        <input id="rgPass2" type="password" placeholder="" data-i18n-ph="ph.confirm" autocomplete="new-password" maxlength="72">
+        <p class="hint" data-i18n="auth.hint">Password: at least 8 characters, with a letter and a number.</p>
+        <button class="big" id="rgBtn" type="submit" data-i18n="auth.create">Create account</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- WORKER DASHBOARD -->
+  <div class="overlay" id="dashboard">
+    <div class="card" style="margin-top:3vh">
+      <div class="langsw"><button type="button" data-lang="en" onclick="setLang('en')">English</button><button type="button" data-lang="ta" onclick="setLang('ta')">தமிழ்</button></div>
+      <h2 id="dWelcome"></h2>
+      <p id="dMeta"></p>
+
+      <div class="modcard">
+        <div class="modtop"><h3 data-i18n="mod.a.title">Fire &amp; Explosion Response</h3><span class="badge" id="statusA">Not started</span></div>
+        <p data-i18n="mod.a.desc">Find the extinguisher, learn the PASS steps, put out the fire, then take the quiz.</p>
+        <p class="stats" id="statsA"></p>
+        <div id="histA"></div>
+        <button class="big" id="startBtn" onclick="startAll()">Start training</button>
+        <button class="big alt" id="certBtn" style="display:none" onclick="getCertificate()">Get my certificate</button>
+      </div>
+
+      <a class="big alt" id="adminLink" href="/admin" style="display:none" data-i18n="btn.admin">Admin dashboard</a>
+      <button class="big alt" onclick="logout()" data-i18n="btn.logout">Log out</button>
     </div>
   </div>
 
@@ -73,28 +116,34 @@
     <div class="card" style="margin-top:8vh">
       <h2 id="rtitle"></h2>
       <p id="rtext"></p>
-      <button class="big" id="rcert" onclick="makeCert()">Generate my certificate</button>
-      <button class="big alt" id="rretry" onclick="startQuiz()">Try the quiz again</button>
-      <button class="big alt" id="rlesson" onclick="reviewLesson()">Review the lesson</button>
+      <div id="rreview"></div>
+      <button class="big" id="rcert" onclick="getCertificate()" data-i18n="res.gen">Generate my certificate</button>
+      <button class="big alt" id="rretry" onclick="startQuiz()" data-i18n="res.retry">Try the quiz again</button>
+      <button class="big alt" id="rlesson" onclick="reviewLesson()" data-i18n="res.review">Review the lesson</button>
     </div>
   </div>
 
-  <!-- CERTIFICATE -->
+  <!-- CERTIFICATE (made by the server) -->
   <div class="overlay" id="cert">
-    <div class="card">
-      <h2>Your certificate</h2>
-      <canvas id="certCanvas" width="1000" height="700"></canvas>
-      <a id="dl" download="mine-safety-certificate.png"><button class="big">Download certificate (PNG)</button></a>
-      <button class="big alt" onclick="location.href=location.pathname">Start over</button>
+    <div class="card" style="margin-top:4vh">
+      <h2 data-i18n="cert.title">Your certificate</h2>
+      <div class="modcard">
+        <p><b id="cName"></b></p>
+        <p id="cModule"></p>
+        <p id="cScore"></p>
+        <p><span data-i18n="cert.id">Certificate ID: </span><b id="cId"></b></p>
+        <p><span data-i18n="cert.issued">Issued: </span><span id="cDate"></span></p>
+      </div>
+      <a class="big" id="cPdf" href="#" download data-i18n="cert.pdf">Download certificate (PDF)</a>
+      <a class="big alt" id="cVerify" href="#" target="_blank" rel="noopener" data-i18n="cert.verify">Open verification page</a>
+      <button class="big alt" onclick="location.href=location.pathname" data-i18n="cert.back">Back to dashboard</button>
     </div>
-  </div>
-
-  <!-- VERIFY (opens when someone scans the QR code) -->
-  <div class="overlay" id="verify">
-    <div class="card" style="margin-top:8vh" id="vbox"></div>
   </div>
 
 <script src="frontend/js/utils.js"></script>
+<script src="frontend/js/i18n.js"></script>
+<script src="frontend/js/api.js"></script>
+<script src="frontend/js/auth.js"></script>
 <script src="frontend/js/scene.js"></script>
 <script src="frontend/js/training.js"></script>
 <script src="frontend/js/quiz.js"></script>

@@ -1,6 +1,8 @@
+@font-face { font-family:"NotoTamilLocal"; src:url("../assets/fonts/NotoSansTamil-Regular.ttf") format("truetype"); font-weight:400; unicode-range:U+0B80-0BFF,U+200C-200D,U+25CC; }
+@font-face { font-family:"NotoTamilLocal"; src:url("../assets/fonts/NotoSansTamil-Bold.ttf") format("truetype"); font-weight:700; unicode-range:U+0B80-0BFF,U+200C-200D,U+25CC; }
   :root { --yellow:#facc15; --dark:#1c1917; --orange:#ea580c; }
   * { box-sizing:border-box; }
-  html,body { margin:0; height:100%; overflow:hidden; background:#000; font-family:Arial,sans-serif; color:#fff; touch-action:none; }
+  html,body { margin:0; height:100%; overflow:hidden; background:#000; font-family:Arial,"NotoTamilLocal",sans-serif; color:#fff; touch-action:none; }
   #pano { position:fixed; inset:0; width:100%; height:100%; background:#0c0a09; z-index:0; }
   #vig { position:fixed; inset:0; z-index:2; pointer-events:none;
     background:radial-gradient(ellipse at 50% 45%, rgba(0,0,0,0) 50%, rgba(0,0,0,.5) 100%); }
@@ -111,3 +113,46 @@
     #spray { right:calc(44% + 100px); bottom:120px; }
     @keyframes sweepx { from{bottom:100px} to{bottom:180px} }
   }
+
+  /* ---- login / register / dashboard ---- */
+  .tabs { display:flex; gap:8px; margin:12px 0 6px; }
+  .tabs button { flex:1; padding:12px; border:2px solid #57534e; border-radius:10px; background:#1c1917; color:#d6d3d1; font-size:17px; font-weight:bold; }
+  .tabs button.on { background:var(--yellow); border-color:var(--yellow); color:var(--dark); }
+  .msg { min-height:22px; margin:6px 0; font-size:15px; }
+  .msg.bad { color:#fca5a5; } .msg.ok { color:#86efac; }
+  .hint { font-size:13px !important; color:#a8a29e !important; margin:2px 0 4px; }
+  .modcard { margin-top:14px; padding:14px; border-radius:12px; background:#1c1917; border:2px solid #44403c; }
+  .modcard h3 { margin:0; font-size:17px; color:#fff; }
+  .modcard p { margin:8px 0 0; font-size:15px; }
+  .modtop { display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
+  .badge { flex:none; padding:4px 10px; border-radius:20px; font-size:12px; font-weight:bold; background:#44403c; color:#e7e5e4; }
+  .big:disabled { opacity:.5; }
+  #loading, #auth, #dashboard { background:#0c0a09; }   /* solid background so nothing shows through */
+
+  /* ---- quiz selection, review, dashboard history ---- */
+  .opt.sel { border-color:var(--yellow); background:#3a3306; }
+  .rv { margin-top:10px; padding:10px 12px; border-radius:10px; font-size:15px; line-height:1.45; color:#e7e5e4; }
+  .rv.good { background:#14281c; border:1px solid #166534; }
+  .rv.bad { background:#2a1414; border:1px solid #991b1b; }
+  .badge.in_progress { background:#78350f; color:#fde68a; }
+  .badge.completed { background:#14532d; color:#bbf7d0; }
+  .stats { font-size:14px !important; color:#d6d3d1 !important; }
+  .hrow { display:flex; justify-content:space-between; font-size:13px; color:#a8a29e; padding:4px 2px; border-top:1px solid #292524; }
+  .hrow .pass { color:#86efac; } .hrow .fail { color:#fca5a5; }
+  #quiz, #result { background:#0c0a09; }
+
+  a.big { display:block; text-align:center; text-decoration:none; box-sizing:border-box; }
+  #cert { background:#0c0a09; }
+
+  .opt:disabled { color:#fff; opacity:1; }
+  .opt.sel.good { border-color:#22c55e; background:#14532d; }
+  .opt.sel.bad { border-color:#ef4444; background:#7f1d1d; }
+  #qexp { color:#e7e5e4; line-height:1.45; }
+
+  button, input { font-family:inherit; }
+  .langsw { display:flex; gap:6px; justify-content:flex-end; margin-bottom:6px; }
+  .langsw button { padding:6px 12px; border:2px solid #57534e; border-radius:8px; background:#1c1917; color:#d6d3d1; font-size:14px; font-weight:bold; }
+  .langsw button.on { background:var(--yellow); border-color:var(--yellow); color:var(--dark); }
+  .langsw.hdr { position:absolute; right:10px; top:9px; margin:0; }
+  .langsw.hdr button { padding:4px 9px; font-size:12px; }
+  header { padding-right:150px; }

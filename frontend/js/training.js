@@ -1,21 +1,18 @@
 /* training.js - the PASS lesson steps, the search game, and starting the training
    Loaded as a normal script (not a module), so the functions below are shared with the other files in this folder. */
 
-const steps = [
-  { t:"Do this first", x:"When a fire starts, alert others first. Use the extinguisher only if the fire is small. Always keep your exit behind you." },
-  { t:"P - Pull", x:"Pull the safety pin of the extinguisher." },
-  { t:"A - Aim", x:"Aim at the base of the fire." },
-  { t:"S - Squeeze", x:"Squeeze the handle." },
-  { t:"S - Sweep", x:"Sweep from side to side across the base of the fire." }
-];
+const steps = [0, 1, 2, 3, 4];   // the text of each step is in i18n.js (step0.t, step0.x ...)
 
 /* ======== lesson ======== */
-function render(){
-  $("stepTitle").textContent=steps[i].t;
-  $("stepText").textContent=steps[i].x;
+function renderLessonText(){
+  $("stepTitle").textContent=t("step"+i+".t");
+  $("stepText").textContent=t("step"+i+".x");
   $("count").textContent=(i+1)+" / "+steps.length;
   $("fill").style.width=((i+1)/steps.length*100)+"%";
-  $("nextBtn").textContent = (i===steps.length-1) ? "Quiz ▶" : "▶";
+  $("nextBtn").textContent = (i===steps.length-1) ? t("btn.quiz") : "▶";
+}
+function render(){
+  renderLessonText();
   if(phase==="lesson") updateScene();
 }
 const exitItem=()=>items.find(x=>x.kind==="exit");
@@ -29,7 +26,7 @@ function updateScene(){
     fireT=setTimeout(()=>{
       if(i===4&&phase==="lesson"){
         fireOut=true; $("spray").className=""; exitItem().el_.classList.add("hint");
-        toast("Fire is out! Now tap the EXIT sign to leave the area.","rgba(21,128,61,.95)",3500);
+        toast(t("toast.fireOut"),"rgba(21,128,61,.95)",3500);
       }
     },3800);
   } else { f.classList.remove("out"); fireOut=false; exitItem().el_.classList.remove("hint"); }
@@ -45,33 +42,40 @@ function reviewLesson(){
 function tapItem(it){
   if(it.kind==="exit"){
     if(phase==="lesson" && fireOut){
-      toast("You left the area safely. Now the quiz.","rgba(21,128,61,.95)",1500);
+      toast(t("toast.left"),"rgba(21,128,61,.95)",1500);
       setTimeout(startQuiz,900);
-    } else if(phase==="lesson") toast("Put out the fire first, then use the exit.","rgba(127,29,29,.95)");
-    else if(phase==="search") toast("First find the extinguisher.","rgba(127,29,29,.95)");
+    } else if(phase==="lesson") toast(t("toast.exitFirst"),"rgba(127,29,29,.95)");
+    else if(phase==="search") toast(t("toast.findFirst"),"rgba(127,29,29,.95)");
     return;
   }
   if(phase!=="search") return;
   if(it.kind==="ext"){
     foundTime=Math.floor((Date.now()-t0)/1000);
-    phase="lesson";
-    items.forEach(x=>{ if(x.kind==="ext"||x.kind==="bucket") x.gone=true; });
-    hide("arrow"); hide("timer"); hide("search"); show("lesson");
-    toast("Correct! Extinguisher found in "+foundTime+" s","rgba(21,128,61,.95)");
-    updateScene();
-  } else toast("Wrong! Never use water on an electrical fire!","rgba(127,29,29,.95)");
+    enterLesson();
+    toast(t("toast.found",{s:foundTime}),"rgba(21,128,61,.95)");
+    api("POST","/progress/fire/checkpoint",{checkpoint:"search"}).catch(()=>{});   // save progress
+  } else toast(t("toast.wrongBucket"),"rgba(127,29,29,.95)");
 }
-function openAR(){ const mv=$("hiddenAR"); if(mv.canActivateAR) mv.activateAR(); else alert("AR is not supported on this device"); }
+// Moves from the search to the lesson (also used when a worker comes back and continues).
+function enterLesson(){
+  phase="lesson";
+  items.forEach(x=>{ if(x.kind==="ext"||x.kind==="bucket") x.gone=true; });
+  hide("arrow"); hide("timer"); hide("search"); show("lesson");
+  updateScene();
+}
+
+function openAR(){ const mv=$("hiddenAR"); if(mv.canActivateAR) mv.activateAR(); else alert(t("ar.unsupported")); }
 
 async function startAll(){
-  workerName=$("wname").value.trim(); workerId=$("wid").value.trim();
-  if(workerName.length<2){ $("err").textContent="Please enter your name."; return; }
+  if(!currentUser) return;                       // only logged-in workers can start
+  workerName=currentUser.fullName; workerId=currentUser.workerId||"";
   try{
     if(typeof DeviceOrientationEvent!=="undefined" && typeof DeviceOrientationEvent.requestPermission==="function"){
       await DeviceOrientationEvent.requestPermission();
     }
   }catch(e){}
-  hide("start"); sizeGL();
+  api("POST","/progress/fire/checkpoint",{checkpoint:"started"}).catch(()=>{});   // save progress
+  hide("dashboard"); sizeGL();
   items.forEach(it=>{ if(it.v) it.v.play().catch(()=>{}); });
   az0=null; t0=Date.now(); phase="search"; i=0;
   setTimeout(()=>{ if(!realSensor){ B=rad(90); G=0; haveSensor=true; } },1200);
